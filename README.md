@@ -26,7 +26,7 @@ This way we can change the state of your esp8266 devices in realtime, without us
 ## Limitation
 
 * does not implemented reconnect functionality yet (it drops the connection after a couple minutes in idle)
-* it was not extensively tested (my only test was in the example file, publish and subscribe to QoS0 and QoS1 with success)
+* it was not extensively tested (like stress test, with many messages. it was just simple tests, like subscribe and publich Qos0 and QoS1 messages)
 * may work in arduino without SSL and out of aws environment (but not tested yet, you need to turn off SSL and inform the path - you may find no use for it with arduino, as arduino does not have SSL support. It is better to use MQTT directy without a security layer)
 * a lot of TODO and FIX in the code - I think it is more important to share first ;-)
 
