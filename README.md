@@ -32,4 +32,13 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 ## Usage 
 
-It is transparent. It is the same as the usage of Paho. There is just some changes in the connection step. See the example for details.
+It is transparent. It is the same as the usage of Paho. There is just some changes in the connection step. See the example for details. Things you should edit in the example:
+* ssid and password to connect to wifi
+* domain/endpoint for your aws iot service
+* region of your aws iot service
+* aws user key /*/* 
+* aws user secret key
+
+ /*/* It is a good pratice creating a new user (and grant just iot services permission). Avoid use the key/secret key of your main aws console user
+
+  
