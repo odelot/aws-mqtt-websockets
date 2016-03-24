@@ -36,9 +36,9 @@ It is transparent. It is the same as the usage of Paho. There is just some chang
 * ssid and password to connect to wifi
 * domain/endpoint for your aws iot service
 * region of your aws iot service
-* aws user key /*/* 
+* aws user key \*\* 
 * aws user secret key
 
- /*/* It is a good pratice creating a new user (and grant just iot services permission). Avoid use the key/secret key of your main aws console user
+ \*\* It is a good pratice creating a new user (and grant just iot services permission). Avoid use the key/secret key of your main aws console user
 
   
