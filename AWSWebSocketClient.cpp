@@ -4,7 +4,7 @@
 AWSWebSocketClient* AWSWebSocketClient::instance = NULL;
 
 //callback to handle messages coming from the websocket layer
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
+void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
     switch(type) {
         case WStype_DISCONNECTED:
@@ -12,16 +12,16 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
             break;
         case WStype_CONNECTED:
             //TODO maybe control connection here
-			DEBUG_WEBSOCKET_MQTT("[AWSc] Connected to url: %s\n",  payload);				
+            DEBUG_WEBSOCKET_MQTT("[AWSc] Connected to url: %s\n",  payload);
             break;
         case WStype_TEXT:
             DEBUG_WEBSOCKET_MQTT("[WSc] get text: %s\n", payload);
-			AWSWebSocketClient::instance->putMessage (payload, lenght);			
+            AWSWebSocketClient::instance->putMessage (payload, length);
             break;
         case WStype_BIN:
-            DEBUG_WEBSOCKET_MQTT("[WSc] get binary lenght: %u\n", lenght);
+            DEBUG_WEBSOCKET_MQTT("[WSc] get binary length: %u\n", length);
             //hexdump(payload, lenght);
-			AWSWebSocketClient::instance->putMessage (payload, lenght);            
+            AWSWebSocketClient::instance->putMessage (payload, length);
             break;
     }
 
@@ -29,21 +29,21 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
 
 //constructor
 AWSWebSocketClient::AWSWebSocketClient () {
-	useSSL = true;
-	connectionTimeout = 5000; //5 seconds
-	AWSWebSocketClient:instance = this;
-	onEvent(webSocketEvent);
-	awsRegion = NULL;    
+    useSSL = true;
+    connectionTimeout = 5000; //5 seconds
+    AWSWebSocketClient:instance = this;
+    onEvent(webSocketEvent);
+    awsRegion = NULL;
     awsSecKey = NULL;
     awsKeyID = NULL;
-	awsDomain = NULL;
-	path = NULL;
-	bb.init (1000); //1000 bytes of circular buffer... maybe it is too big
+    awsDomain = NULL;
+    path = NULL;
+    bb.init (1000); //1000 bytes of circular buffer... maybe it is too big
 }
 
 //destructor
 AWSWebSocketClient::~AWSWebSocketClient(void) {
-	if (awsRegion != NULL)
+    if (awsRegion != NULL)
         delete[] awsRegion;
     if (awsDomain != NULL)
         delete[] awsDomain;
@@ -51,7 +51,7 @@ AWSWebSocketClient::~AWSWebSocketClient(void) {
         delete[] awsSecKey;
     if (awsKeyID != NULL)
         delete[] awsKeyID;
-	if (path != NULL)
+    if (path != NULL)
         delete[] path;
 }
 
@@ -83,7 +83,7 @@ char* getCurrentTime2(void) {
 
     WiFiClient* client = new WiFiClient();;
     if (client->connect("aws.amazon.com", 80)) {
-      
+
       // send a bad header on purpose, so we get a 400 with a DATE: timestamp
       char* timeServerGet = (char*)"GET example.com/ HTTP/1.1";
 
@@ -126,7 +126,7 @@ char* getCurrentTime2(void) {
 
     delete client;
     timeout_busy=0;     // reset timeout
-	
+
     return dateStamp;   // Return latest or last good dateStamp
 }
 
@@ -141,8 +141,8 @@ char* AWSWebSocketClient::generateAWSPath () {
     awsDate[8] = '\0';
     char* awsTime = new char[7];
     strncpy(awsTime, dateTime + 8, 6);
-    awsTime[6] = '\0';  
-    delete[] dateTime;	
+    awsTime[6] = '\0';
+    delete[] dateTime;
 	char* credentialScope = new char[50]();
 	sprintf(credentialScope, "%s/%s/%s/aws4_request",awsDate,awsRegion,awsService);
 	String key_credential (awsKeyID);
@@ -156,18 +156,18 @@ char* AWSWebSocketClient::generateAWSPath () {
 
 	char* canonicalQuerystring = new char[500]();
 	sprintf(canonicalQuerystring, "%sX-Amz-Algorithm=%s", canonicalQuerystring,algorithm);
-	sprintf(canonicalQuerystring, "%s&X-Amz-Credential=%s", canonicalQuerystring,key_credential.c_str()); 
+	sprintf(canonicalQuerystring, "%s&X-Amz-Credential=%s", canonicalQuerystring,key_credential.c_str());
 	sprintf(canonicalQuerystring, "%s&X-Amz-Date=%sT%sZ", canonicalQuerystring, awsDate,awsTime);
 	sprintf(canonicalQuerystring, "%s&X-Amz-Expires=86400", canonicalQuerystring, awsDomain); //sign will last one day
 	sprintf(canonicalQuerystring, "%s&X-Amz-SignedHeaders=host", canonicalQuerystring, awsDomain);
-	
+
 	char* canonicalHeaders = new char[150]();
 	sprintf(canonicalHeaders, "%shost:%s\n", canonicalHeaders,awsDomain);
 	SHA256* sha256 = new SHA256();
 	char* payloadHash = (*sha256)("", 0);
 	delete sha256;
 	char* canonicalRequest = new char[500]();
-  
+
 	sprintf(canonicalRequest, "%s%s\n%s\n%s\n%s\nhost\n%s", canonicalRequest,method,canonicalUri,canonicalQuerystring,canonicalHeaders,payloadHash);
 	delete[] payloadHash;
 
@@ -178,11 +178,11 @@ char* AWSWebSocketClient::generateAWSPath () {
 	char* stringToSign = new char[500]();
 	sprintf(stringToSign, "%s%s\n%sT%sZ\n%s\n%s", stringToSign,algorithm,awsDate,awsTime,credentialScope,requestHash);
 	delete[] requestHash;
-	
+
 	delete[] canonicalRequest;
-	
+
 	/* Allocate memory for the signature */
-    char* signature = new char[HASH_HEX_LEN4 + 1]();
+    char* signature = new char[HASH_HEX_LEN2 + 1]();
 
     /* Create the signature key */
     /* + 4 for "AWS4" */
@@ -191,21 +191,21 @@ char* AWSWebSocketClient::generateAWSPath () {
     sprintf(key, "AWS4%s", awsSecKey);
 
     char* k1 = hmacSha256(key, keyLen, awsDate, strlen(awsDate));
-	
+
     delete[] key;
     char* k2 = hmacSha256(k1, SHA256_DEC_HASH_LEN, awsRegion,
             strlen(awsRegion));
-	
+
     delete[] k1;
     char* k3 = hmacSha256(k2, SHA256_DEC_HASH_LEN, awsService,
             strlen(awsService));
-   
+
 	delete[] k2;
     char* k4 = hmacSha256(k3, SHA256_DEC_HASH_LEN, "aws4_request", 12);
-    
+
 	delete[] k3;
     char* k5 = hmacSha256(k4, SHA256_DEC_HASH_LEN, stringToSign, strlen(stringToSign));
-    
+
 	delete[] k4;
 	delete[] stringToSign;
     /* Convert the chars in hash to hex for signature. */
@@ -213,21 +213,21 @@ char* AWSWebSocketClient::generateAWSPath () {
         sprintf(signature + 2 * i, "%02lx", 0xff & (unsigned long) k5[i]);
     }
     delete[] k5;
-    
+
 	sprintf(canonicalQuerystring, "%s&X-Amz-Signature=%s", canonicalQuerystring, signature);
 	delete[] signature;
-   
+
 	char* requestUri = new char[500]();
 	//sprintf(requestUri, "%swss://%s%s?%s", requestUri, awsDomain,canonicalUri,canonicalQuerystring);
 	sprintf(requestUri, "%s%s?%s", requestUri, canonicalUri,canonicalQuerystring);
 	delete[] canonicalQuerystring;
-  
+
 	char* result = new char[strlen (requestUri)+1]();
 	strcpy (result,requestUri);
 	delete[] requestUri;
-    
+
 	return result;
-		
+
 }
 
 AWSWebSocketClient& AWSWebSocketClient::setAWSRegion(const char * awsRegion) {
@@ -271,19 +271,19 @@ int AWSWebSocketClient::connect(IPAddress ip, uint16_t port){
 int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	char* path = this->path;
 	  if (this->path == NULL)
-		  path = generateAWSPath ();		  			  	  
+		  path = generateAWSPath ();
 	  if (useSSL == true)
-		  beginSSL (host,port,path,"","mqtt");		  
+		  beginSSL (host,port,path,"","mqtt");
 	  else
-		  begin (host,port,path,"mqtt");		  			  
+		  begin (host,port,path,"mqtt");
 	  long now = millis ();
-	  while ( (millis ()-now) < connectionTimeout) {			  
+	  while ( (millis ()-now) < connectionTimeout) {
 		  loop ();
 		  //this is not good, would be good that it just continue after conn message has been received
 		  if (connected () == 1)
 			  return 1;
 		  delay (10);
-	  }		  
+	  }
 	  return 0;
 }
 
@@ -298,9 +298,9 @@ void AWSWebSocketClient::putMessage (byte* buffer, int length) {
 size_t AWSWebSocketClient::write(uint8_t b) {
   return write (&b,1);
 }
-  
-//write through websocket layer  
-size_t AWSWebSocketClient::write(const uint8_t *buf, size_t size) {	  
+
+//write through websocket layer
+size_t AWSWebSocketClient::write(const uint8_t *buf, size_t size) {
   if (sendBIN (buf,size))
 	  return size;
   return 0;
@@ -314,25 +314,25 @@ int AWSWebSocketClient::available(){
 }
 
 //read from circular buffer (used by mqtt layer)
-int AWSWebSocketClient::read() { 
+int AWSWebSocketClient::read() {
 	return bb.get ();
 }
 
 //read from circular buffer (used by mqtt layer)
-int AWSWebSocketClient::read(uint8_t *buf, size_t size) { 
+int AWSWebSocketClient::read(uint8_t *buf, size_t size) {
 	int s = size;
 	if (bb.getSize()<s)
 		s = bb.getSize ();
 
-	//TODO improve here when implement my own bytebuffer 
+	//TODO improve here when implement my own bytebuffer
 	for (int i=0; i< s; i+=1) {
 		buf[i]=bb.get ();
-		
+
 	}
 	return s;
 };
 
-int AWSWebSocketClient::peek() { 
+int AWSWebSocketClient::peek() {
 	//TODO fix this with our own bytebuffer impl
 	//bb.peek ();
 	Serial.println ("PEEK <o>");
@@ -340,18 +340,18 @@ int AWSWebSocketClient::peek() {
 }
 
 void AWSWebSocketClient::flush() {
-  
+
 }
 
-void AWSWebSocketClient::stop() { 
+void AWSWebSocketClient::stop() {
 	disconnect ();
 }
 
-uint8_t AWSWebSocketClient::connected() { 
+uint8_t AWSWebSocketClient::connected() {
 return clientIsConnected(&_client);
 };
 
-AWSWebSocketClient::operator bool() { 
+AWSWebSocketClient::operator bool() {
 	return clientIsConnected(&_client);
 };
 
