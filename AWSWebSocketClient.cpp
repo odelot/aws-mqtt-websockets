@@ -4,7 +4,7 @@
 AWSWebSocketClient* AWSWebSocketClient::instance = NULL;
 
 //callback to handle messages coming from the websocket layer
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
+void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
     switch(type) {
         case WStype_DISCONNECTED:
@@ -16,12 +16,12 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t lenght) {
             break;
         case WStype_TEXT:
             DEBUG_WEBSOCKET_MQTT("[WSc] get text: %s\n", payload);
-            AWSWebSocketClient::instance->putMessage (payload, lenght);
+            AWSWebSocketClient::instance->putMessage (payload, length);
             break;
         case WStype_BIN:
-            DEBUG_WEBSOCKET_MQTT("[WSc] get binary lenght: %u\n", lenght);
-            //hexdump(payload, lenght);
-            AWSWebSocketClient::instance->putMessage (payload, lenght);
+            DEBUG_WEBSOCKET_MQTT("[WSc] get binary length: %u\n", length);
+            //hexdump(payload, length);
+            AWSWebSocketClient::instance->putMessage (payload, length);
             break;
     }
 
