@@ -20,7 +20,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
             break;
         case WStype_BIN:
             DEBUG_WEBSOCKET_MQTT("[WSc] get binary length: %u\n", length);
-            //hexdump(payload, length);
+            //hexdump(payload, lenght);
             AWSWebSocketClient::instance->putMessage (payload, length);
             break;
     }
@@ -182,7 +182,7 @@ char* AWSWebSocketClient::generateAWSPath () {
 	delete[] canonicalRequest;
 
 	/* Allocate memory for the signature */
-    char* signature = new char[HASH_HEX_LEN4 + 1]();
+    char* signature = new char[HASH_HEX_LEN2 + 1]();
 
     /* Create the signature key */
     /* + 4 for "AWS4" */

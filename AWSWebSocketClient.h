@@ -8,7 +8,7 @@
 #include "ByteBuffer.h"
 #include "sha256.h"
 #include "Utils.h"
-#include "AWSClient4.h"
+#include "AWSClient2.h"
 
 
 #define DEBUG_WEBSOCKET_MQTT(...) os_printf( __VA_ARGS__ )
