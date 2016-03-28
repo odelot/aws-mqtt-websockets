@@ -33,13 +33,18 @@ char aws_key[]         = "your-iam-key";
 char aws_secret[]      = "your-iam-secret-key";
 char aws_region[]      = "eu-west-1";
 const char* aws_topic  = "$aws/things/your-device/shadow/update";
+int port = 443;
+
+//MQTT config
+const int maxMQTTpackageSize = 128;
+const int maxMQTTMessageHandlers = 1;
 
 ESP8266WiFiMulti WiFiMulti;
 
 AWSWebSocketClient awsWSclient;
 
 IPStack ipstack(awsWSclient);
-MQTT::Client<IPStack, Countdown, 50, 1> client = MQTT::Client<IPStack, Countdown, 50, 1>(ipstack);
+MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers> client = MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers>(ipstack);
 
 
 //generate random mqtt clientID
@@ -75,6 +80,67 @@ void messageArrived(MQTT::MessageData& md)
   delete msg;
 }
 
+
+//connects to websocket layer and mqtt layer
+bool connect () {
+
+   //make sure mqtt client is disconnect   
+   if (client.isConnected ()) {    
+    client.disconnect ();
+   }
+   
+   int rc = ipstack.connect(aws_endpoint, port);
+    if (rc != 1)
+    {
+      Serial.println("error connection to the websocket server");
+      return false;
+    } else {
+      Serial.println("websocket layer connected");
+    }
+    
+
+    Serial.println("MQTT connecting");
+    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
+    data.MQTTVersion = 3;
+    data.clientID.cstring = generateClientID ();
+    rc = client.connect(data);
+    if (rc != 0)
+    {
+      Serial.print("error connection to MQTT server");
+      Serial.println(rc);
+      return false;
+    }
+    Serial.println("MQTT connected");
+    return true;
+}
+
+//subscribe to a mqtt topic
+void subscribe () {
+   //subscript to a topic
+    int rc = client.subscribe(aws_topic, MQTT::QOS0, messageArrived);
+    if (rc != 0) {
+      Serial.print("rc from MQTT subscribe is ");
+      Serial.println(rc);
+      return;
+    }
+    Serial.println("MQTT subscribed");
+}
+
+//send a message to a mqtt topic
+void sendmessage () {
+    //send a message
+    MQTT::Message message;
+    char buf[100];
+    strcpy(buf, "{\"state\":{\"reported\":{\"foo\": \"bar\"}, \"desired\":{}}}");
+    message.qos = MQTT::QOS0;
+    message.retained = false;
+    message.dup = false;
+    message.payload = (void*)buf;
+    message.payloadlen = strlen(buf)+1;
+    int rc = client.publish(aws_topic, message); 
+}
+
+
 void setup() {
     Serial.begin (115200);
     delay (2000);
@@ -87,66 +153,31 @@ void setup() {
         delay(100);
         Serial.print (".");
     }
-    Serial.println ("Connected");
+    Serial.println ("\nconnected");
 
-    //fill AWS parameters
-    int port = 443;
+    //fill AWS parameters    
     awsWSclient.setAWSRegion(aws_region);
     awsWSclient.setAWSDomain(aws_endpoint);
     awsWSclient.setAWSKeyID(aws_key);
     awsWSclient.setAWSSecretKey(aws_secret);
-
     awsWSclient.setUseSSL(true);
-    int rc = ipstack.connect(aws_endpoint, port);
-    if (rc != 1)
-    {
-      Serial.println("error connection to the websocket server");
-      return;
-    } else {
-      Serial.println("socket connected");
-    }
-    //FIX (workaround) wait for websocket connection message... it should be inside ipstack.connect
-    for (int i=0; i<200; i+=1) {
-      Serial.print(".");
-       awsWSclient.available ();
-       delay (10);
-    }
 
-    Serial.println("MQTT connecting");
-    MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
-    data.MQTTVersion = 3;
-    data.clientID.cstring = generateClientID ();
-    rc = client.connect(data);
-    if (rc != 0)
-    {
-      Serial.print("error connection to MQTT server");
-      Serial.println(rc);
+    //example... as soon get a connection, subscribe to a topic and send a message
+    if (connect ()){
+      subscribe ();
+      sendmessage ();
     }
-    Serial.println("MQTT connected");
-
-    //send a message
-    MQTT::Message message;
-    char buf[100];
-    strcpy(buf, "{\"reported\":{\"foo\": \"bar\"}, desired:{}}");
-    message.qos = MQTT::QOS0;
-    message.retained = false;
-    message.dup = false;
-    message.payload = (void*)buf;
-    message.payloadlen = strlen(buf)+1;
-    rc = client.publish(aws_topic, message);
-
-    //subscript to a topic
-    rc = client.subscribe(aws_topic, MQTT::QOS1, messageArrived);
-    if (rc != 0)
-    {
-      Serial.print("rc from MQTT subscribe is ");
-      Serial.println(rc);
-    }
-    Serial.println("MQTT subscribed");
 
 }
 
 void loop() {
   //keep the mqtt up and running
-  client.yield();
+  if (awsWSclient.connected ())
+    client.yield();
+  else {
+    //handle reconnection
+    if (connect ()){
+      subscribe ();      
+    }
+  }    
 }
