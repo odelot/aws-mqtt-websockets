@@ -3,6 +3,7 @@ Implementation of a middleware to use AWS MQTT service through websockets. Aimin
 
 ## ChangeLog
 
+* 0.2 - auto reconnection
 * 0.1 - has known limitation and it was not extensively tested
 
 ## Motivation
@@ -15,7 +16,7 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 | Library                   | Link                                                            | Use                 |
 |---------------------------|-----------------------------------------------------------------|---------------------|
-|aws-sdk-arduino            |https://github.com/svdgraaf/aws-sdk-arduino                      |aws signing functions|
+|aws-sdk-arduino            |https://github.com/awslabs/aws-sdk-arduino                       |aws signing functions|
 |arduinoWebSockets          |https://github.com/Links2004/arduinoWebSockets                   |websocket comm impl  |
 |Paho MQTT for Arduino      |https://projects.eclipse.org/projects/technology.paho/downloads  |mqtt comm impl       |
 |ByteBuffer\*               |https://github.com/siggiorn/arduino-buffered-serial              |circular byte buffer |
@@ -25,10 +26,9 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 ## Limitation
 
-* Does not implemented reconnect functionality yet (it drops the connection after a couple minutes in idle)
 * It was not extensively tested (like stress test, with many messages. it was just simple tests, like subscribe and publich Qos0 and QoS1 messages)
 * May work in arduino without SSL and out of aws environment (but not tested yet, you need to turn off SSL and inform the path - you may find no use for it with arduino, as arduino does not have SSL support. It is better to use MQTT directy without a security layer)
-* A lot of TODO and FIX in the code - I think it is more important to share first ;-)
+* some TODO and FIX in the code - I think it is more important to share first ;-)
 
 ## Usage
 
@@ -40,3 +40,19 @@ It is transparent. It is the same as the usage of Paho. There is just some chang
 * aws user secret key
 
  \*\* It is a good practice creating a new user (and grant just iot services permission). Avoid use the key/secret key of your main aws console user
+ 
+ ```
+ //AWS IOT config, change these:
+char wifi_ssid[]       = "your-ssid";
+char wifi_password[]   = "your-password";
+char aws_endpoint[]    = "your-endpoint.iot.eu-west-1.amazonaws.com";
+char aws_key[]         = "your-iam-key";
+char aws_secret[]      = "your-iam-secret-key";
+char aws_region[]      = "eu-west-1";
+const char* aws_topic  = "$aws/things/your-device/shadow/update";
+int port = 443;
+
+//MQTT config
+const int maxMQTTpackageSize = 128;
+const int maxMQTTMessageHandlers = 1;
+ ```
