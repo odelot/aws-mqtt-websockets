@@ -39,6 +39,7 @@ ESP8266WiFiMulti WiFiMulti;
 AWSWebSocketClient awsWSclient;
 
 IPStack ipstack(awsWSclient);
+// 50 is the max length for the mqtt packages, raise this value if you need longer mqtt messages
 MQTT::Client<IPStack, Countdown, 50, 1> client = MQTT::Client<IPStack, Countdown, 50, 1>(ipstack);
 
 
