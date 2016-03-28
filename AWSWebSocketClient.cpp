@@ -4,15 +4,17 @@
 AWSWebSocketClient* AWSWebSocketClient::instance = NULL;
 
 //callback to handle messages coming from the websocket layer
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+void AWSWebSocketClient::webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
     switch(type) {
         case WStype_DISCONNECTED:
             DEBUG_WEBSOCKET_MQTT("[AWSc] Disconnected!\n");
+			AWSWebSocketClient::instance->stop ();			
             break;
         case WStype_CONNECTED:
             //TODO maybe control connection here
             DEBUG_WEBSOCKET_MQTT("[AWSc] Connected to url: %s\n",  payload);
+			AWSWebSocketClient::instance->_connected = true;
             break;
         case WStype_TEXT:
             DEBUG_WEBSOCKET_MQTT("[WSc] get text: %s\n", payload);
@@ -32,12 +34,13 @@ AWSWebSocketClient::AWSWebSocketClient () {
     useSSL = true;
     connectionTimeout = 5000; //5 seconds
     AWSWebSocketClient:instance = this;
-    onEvent(webSocketEvent);
+    onEvent(AWSWebSocketClient::webSocketEvent);
     awsRegion = NULL;
     awsSecKey = NULL;
     awsKeyID = NULL;
     awsDomain = NULL;
     path = NULL;
+	_connected = false;	
     bb.init (1000); //1000 bytes of circular buffer... maybe it is too big
 }
 
@@ -244,6 +247,10 @@ AWSWebSocketClient& AWSWebSocketClient::setAWSDomain(const char * awsDomain) {
 	return *this;
 }
 
+AWSWebSocketClient& AWSWebSocketClient::setHost(const char * host) {    
+	return setAWSDomain (host);
+}
+
 AWSWebSocketClient& AWSWebSocketClient::setAWSSecretKey(const char * awsSecKey) {
     int len = strlen(awsSecKey) + 1;
     this->awsSecKey = new char[len]();
@@ -269,6 +276,11 @@ int AWSWebSocketClient::connect(IPAddress ip, uint16_t port){
 }
 
 int AWSWebSocketClient::connect(const char *host, uint16_t port) {
+	//make sure it is disconnect first
+	stop ();
+	
+	serverPort = port;
+	setHost (host);
 	char* path = this->path;
 	  if (this->path == NULL)
 		  path = generateAWSPath ();
@@ -278,12 +290,13 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 		  begin (host,port,path,"mqtt");
 	  long now = millis ();
 	  while ( (millis ()-now) < connectionTimeout) {
-		  loop ();
-		  //this is not good, would be good that it just continue after conn message has been received
+		  loop ();		  
 		  if (connected () == 1)
 			  return 1;
 		  delay (10);
 	  }
+	  
+	  
 	  return 0;
 }
 
@@ -296,11 +309,15 @@ void AWSWebSocketClient::putMessage (byte* buffer, int length) {
 }
 
 size_t AWSWebSocketClient::write(uint8_t b) {
+	if (_connected == false)
+	  return -1;
   return write (&b,1);
 }
 
 //write through websocket layer
 size_t AWSWebSocketClient::write(const uint8_t *buf, size_t size) {
+  if (_connected == false)
+	  return -1;
   if (sendBIN (buf,size))
 	  return size;
   return 0;
@@ -309,17 +326,23 @@ size_t AWSWebSocketClient::write(const uint8_t *buf, size_t size) {
 //return with there is bytes to consume from the circular buffer (used by mqtt layer)
 int AWSWebSocketClient::available(){
   //force websocket to handle it messages
+  if (_connected == false)
+	  return false;
   loop ();
   return bb.getSize ();
 }
 
 //read from circular buffer (used by mqtt layer)
 int AWSWebSocketClient::read() {
+	if (_connected == false)
+	  return -1;
 	return bb.get ();
 }
 
 //read from circular buffer (used by mqtt layer)
 int AWSWebSocketClient::read(uint8_t *buf, size_t size) {
+	if (_connected == false)
+	  return -1;
 	int s = size;
 	if (bb.getSize()<s)
 		s = bb.getSize ();
@@ -344,15 +367,19 @@ void AWSWebSocketClient::flush() {
 }
 
 void AWSWebSocketClient::stop() {
+	if (_connected == true) {		
+		_connected = false;
+		bb.clear ();
+	}
 	disconnect ();
 }
 
 uint8_t AWSWebSocketClient::connected() {
-return clientIsConnected(&_client);
+return _connected;
 };
 
 AWSWebSocketClient::operator bool() {
-	return clientIsConnected(&_client);
+	return _connected;
 };
 
 

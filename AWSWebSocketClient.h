@@ -1,5 +1,5 @@
-#ifndef WSCLIENT_H_
-#define WSCLIENT_H_
+#ifndef __AWSWEBSOCKETCLIENT_H_
+#define __AWSWEBSOCKETCLIENT_H_
 
 #include <Arduino.h>
 #include <Stream.h>
@@ -11,7 +11,7 @@
 #include "AWSClient2.h"
 
 
-#define DEBUG_WEBSOCKET_MQTT(...) os_printf( __VA_ARGS__ )
+//#define DEBUG_WEBSOCKET_MQTT(...) os_printf( __VA_ARGS__ )
 
 #ifndef DEBUG_WEBSOCKET_MQTT
 #define DEBUG_WEBSOCKET_MQTT(...)
@@ -42,19 +42,29 @@ public:
   uint8_t connected() ;
   operator bool();
 
-
   bool getUseSSL ();
-
+  
   AWSWebSocketClient& setUseSSL (bool value);
   AWSWebSocketClient& setAWSRegion(const char * awsRegion);
-  AWSWebSocketClient& setAWSDomain(const char * awsDomain);
+  AWSWebSocketClient& setAWSDomain(const char * awsDomain);  
   AWSWebSocketClient& setAWSSecretKey(const char * awsSecKey);
   AWSWebSocketClient& setAWSKeyID(const char * awsKeyID);
+  AWSWebSocketClient& setHost(const char * host);
   AWSWebSocketClient& setPath(const char * path);
-
+      
+  protected:
+  //static instance of aws websocket client
   static AWSWebSocketClient* instance;
+  //keep the connection state
+  bool _connected;  
+  //websocket callback
+  static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length);
+  
   private:
-
+ 
+  //server port (por reconnection)
+  uint16_t serverPort;
+  
   //enable ssl... if your using mqtt over websockets at AWS IoT service, it must be enabled
   bool useSSL;
 
@@ -71,8 +81,8 @@ public:
   /* The user's AWS Access Key ID for accessing the AWS Resource. */
   char* awsKeyID;
 
-	//circular buffer to keep incoming messages from websocket
-	ByteBuffer bb;
+  //circular buffer to keep incoming messages from websocket
+  ByteBuffer bb;
 };
 
 #endif
