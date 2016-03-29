@@ -11,8 +11,7 @@ void AWSWebSocketClient::webSocketEvent(WStype_t type, uint8_t * payload, size_t
             DEBUG_WEBSOCKET_MQTT("[AWSc] Disconnected!\n");
 			AWSWebSocketClient::instance->stop ();			
             break;
-        case WStype_CONNECTED:
-            //TODO maybe control connection here
+        case WStype_CONNECTED:            
             DEBUG_WEBSOCKET_MQTT("[AWSc] Connected to url: %s\n",  payload);
 			AWSWebSocketClient::instance->_connected = true;
             break;
@@ -247,10 +246,6 @@ AWSWebSocketClient& AWSWebSocketClient::setAWSDomain(const char * awsDomain) {
 	return *this;
 }
 
-AWSWebSocketClient& AWSWebSocketClient::setHost(const char * host) {    
-	return setAWSDomain (host);
-}
-
 AWSWebSocketClient& AWSWebSocketClient::setAWSSecretKey(const char * awsSecKey) {
     int len = strlen(awsSecKey) + 1;
     this->awsSecKey = new char[len]();
@@ -277,10 +272,7 @@ int AWSWebSocketClient::connect(IPAddress ip, uint16_t port){
 
 int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	//make sure it is disconnect first
-	stop ();
-	
-	serverPort = port;
-	setHost (host);
+	stop ();	
 	char* path = this->path;
 	  if (this->path == NULL)
 		  path = generateAWSPath ();
@@ -302,10 +294,7 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 
 //store messages arrived by websocket layer to be consumed by mqtt layer through the read funcion
 void AWSWebSocketClient::putMessage (byte* buffer, int length) {
-	//TODO: make my own circular buffer to improve here
-	for (int i=0; i< length; i+=1) {
-		bb.put (buffer[i]);
-	}
+	bb.push (buffer,length);	
 }
 
 size_t AWSWebSocketClient::write(uint8_t b) {
@@ -336,7 +325,7 @@ int AWSWebSocketClient::available(){
 int AWSWebSocketClient::read() {
 	if (_connected == false)
 	  return -1;
-	return bb.get ();
+	return bb.pop ();
 }
 
 //read from circular buffer (used by mqtt layer)
@@ -347,19 +336,12 @@ int AWSWebSocketClient::read(uint8_t *buf, size_t size) {
 	if (bb.getSize()<s)
 		s = bb.getSize ();
 
-	//TODO improve here when implement my own bytebuffer
-	for (int i=0; i< s; i+=1) {
-		buf[i]=bb.get ();
-
-	}
+	bb.pop (buf,s);	
 	return s;
 };
 
 int AWSWebSocketClient::peek() {
-	//TODO fix this with our own bytebuffer impl
-	//bb.peek ();
-	Serial.println ("PEEK <o>");
-	return 0;
+	return bb.peek ();
 }
 
 void AWSWebSocketClient::flush() {

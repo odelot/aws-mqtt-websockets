@@ -5,7 +5,7 @@
 #include <Stream.h>
 #include "Client.h"
 #include "WebSocketsClient.h"
-#include "ByteBuffer.h"
+#include "CircularByteBuffer.h"
 #include "sha256.h"
 #include "Utils.h"
 #include "AWSClient2.h"
@@ -48,8 +48,7 @@ public:
   AWSWebSocketClient& setAWSRegion(const char * awsRegion);
   AWSWebSocketClient& setAWSDomain(const char * awsDomain);  
   AWSWebSocketClient& setAWSSecretKey(const char * awsSecKey);
-  AWSWebSocketClient& setAWSKeyID(const char * awsKeyID);
-  AWSWebSocketClient& setHost(const char * host);
+  AWSWebSocketClient& setAWSKeyID(const char * awsKeyID);  
   AWSWebSocketClient& setPath(const char * path);
       
   protected:
@@ -61,9 +60,6 @@ public:
   static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length);
   
   private:
- 
-  //server port (por reconnection)
-  uint16_t serverPort;
   
   //enable ssl... if your using mqtt over websockets at AWS IoT service, it must be enabled
   bool useSSL;
@@ -82,7 +78,7 @@ public:
   char* awsKeyID;
 
   //circular buffer to keep incoming messages from websocket
-  ByteBuffer bb;
+  CircularByteBuffer bb;
 };
 
 #endif
