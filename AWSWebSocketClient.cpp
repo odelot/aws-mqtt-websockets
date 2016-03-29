@@ -82,12 +82,13 @@ char* getCurrentTime2(void) {
 
     String GmtDate;
     char* dateStamp = new char[15]();
+	strcpy (dateStamp,"19860618123600");
 
     WiFiClient* client = new WiFiClient();;
     if (client->connect("aws.amazon.com", 80)) {
 
       // send a bad header on purpose, so we get a 400 with a DATE: timestamp
-      char* timeServerGet = (char*)"GET example.com/ HTTP/1.1";
+      const char* timeServerGet = (char*)"GET example.com/ HTTP/1.1";
 
       //Send Request
       client->println("GET example.com/ HTTP/1.1");
@@ -103,7 +104,7 @@ char* getCurrentTime2(void) {
       if(timeout_busy >= 5000) {
           client->flush();
           client->stop();
-          Serial.println("timeout receiving timeserver data");
+          DEBUG_WEBSOCKET_MQTT("timeout receiving timeserver data");
           return dateStamp;
       }
 
@@ -123,7 +124,7 @@ char* getCurrentTime2(void) {
       }
     }
     else {
-      Serial.println("did not connect to timeserver");
+       DEBUG_WEBSOCKET_MQTT("did not connect to timeserver");
     }
 
     delete client;
@@ -141,7 +142,7 @@ char* AWSWebSocketClient::generateAWSPath () {
     char* awsDate = new char[9]();
     strncpy(awsDate, dateTime, 8);
     awsDate[8] = '\0';
-    char* awsTime = new char[7];
+    char* awsTime = new char[7]();
     strncpy(awsTime, dateTime + 8, 6);
     awsTime[6] = '\0';
     delete[] dateTime;
@@ -152,9 +153,9 @@ char* AWSWebSocketClient::generateAWSPath () {
 	key_credential+=credentialScope;
 	//FIX tried a lot of escape functions, but no one was equal to escapeURL from javascript
 	key_credential.replace ("/","%2F");
-	char* method = "GET";
-	char* canonicalUri = "/mqtt";
-	char* algorithm = "AWS4-HMAC-SHA256";
+	const char* method = "GET";
+	const char* canonicalUri = "/mqtt";
+	const char* algorithm = "AWS4-HMAC-SHA256";
 
 	char* canonicalQuerystring = new char[500]();
 	sprintf(canonicalQuerystring, "%sX-Amz-Algorithm=%s", canonicalQuerystring,algorithm);
@@ -172,6 +173,7 @@ char* AWSWebSocketClient::generateAWSPath () {
 
 	sprintf(canonicalRequest, "%s%s\n%s\n%s\n%s\nhost\n%s", canonicalRequest,method,canonicalUri,canonicalQuerystring,canonicalHeaders,payloadHash);
 	delete[] payloadHash;
+	delete[] canonicalHeaders;
 
 
 	sha256 = new SHA256();
@@ -181,7 +183,8 @@ char* AWSWebSocketClient::generateAWSPath () {
 	sprintf(stringToSign, "%s%s\n%sT%sZ\n%s\n%s", stringToSign,algorithm,awsDate,awsTime,credentialScope,requestHash);
 	delete[] requestHash;
 	delete[] credentialScope;
-	delete[] canonicalRequest;
+	delete[] canonicalRequest;	
+	delete[] awsTime;
 
 	/* Allocate memory for the signature */
     char* signature = new char[HASH_HEX_LEN2 + 1]();
@@ -193,7 +196,7 @@ char* AWSWebSocketClient::generateAWSPath () {
     sprintf(key, "AWS4%s", awsSecKey);
 
     char* k1 = hmacSha256(key, keyLen, awsDate, strlen(awsDate));
-
+	delete[] awsDate;
     delete[] key;
     char* k2 = hmacSha256(k1, SHA256_DEC_HASH_LEN, awsRegion,
             strlen(awsRegion));
@@ -219,16 +222,12 @@ char* AWSWebSocketClient::generateAWSPath () {
 	sprintf(canonicalQuerystring, "%s&X-Amz-Signature=%s", canonicalQuerystring, signature);
 	delete[] signature;
 
-	char* requestUri = new char[500]();
+	char* requestUri = new char[strlen(canonicalUri)+strlen(canonicalQuerystring)+2]();
 	//sprintf(requestUri, "%swss://%s%s?%s", requestUri, awsDomain,canonicalUri,canonicalQuerystring);
 	sprintf(requestUri, "%s%s?%s", requestUri, canonicalUri,canonicalQuerystring);
 	delete[] canonicalQuerystring;
 
-	char* result = new char[strlen (requestUri)+1]();
-	strcpy (result,requestUri);
-	delete[] requestUri;
-
-	return result;
+	return requestUri;
 
 }
 
@@ -290,13 +289,13 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 		  loop ();		  
 		  if (connected () == 1) {		  
 			  if (freePath == true)
-				delete path;
+				delete[] path;
 			  return 1;
 		  }
 		  delay (10);
 	  }
 	  if (freePath == true)
-		delete path;
+		delete[] path;
 	  return 0;
 }
 
