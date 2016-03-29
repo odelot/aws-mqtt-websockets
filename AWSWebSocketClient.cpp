@@ -29,7 +29,7 @@ void AWSWebSocketClient::webSocketEvent(WStype_t type, uint8_t * payload, size_t
 }
 
 //constructor
-AWSWebSocketClient::AWSWebSocketClient () {
+AWSWebSocketClient::AWSWebSocketClient (unsigned int bufferSize) {
     useSSL = true;
     connectionTimeout = 5000; //5 seconds
     AWSWebSocketClient:instance = this;
@@ -40,7 +40,7 @@ AWSWebSocketClient::AWSWebSocketClient () {
     awsDomain = NULL;
     path = NULL;
 	_connected = false;	
-    bb.init (1000); //1000 bytes of circular buffer... maybe it is too big
+    bb.init (bufferSize); //1000 bytes of circular buffer... maybe it is too big
 }
 
 //destructor
@@ -180,7 +180,7 @@ char* AWSWebSocketClient::generateAWSPath () {
 	char* stringToSign = new char[500]();
 	sprintf(stringToSign, "%s%s\n%sT%sZ\n%s\n%s", stringToSign,algorithm,awsDate,awsTime,credentialScope,requestHash);
 	delete[] requestHash;
-
+	delete[] credentialScope;
 	delete[] canonicalRequest;
 
 	/* Allocate memory for the signature */

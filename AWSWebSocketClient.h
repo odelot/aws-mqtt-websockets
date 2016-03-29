@@ -21,7 +21,8 @@
 class AWSWebSocketClient : public Client, private WebSocketsClient {
 public:
 
-  AWSWebSocketClient ();
+  //bufferSize defines the size of the circular byte buffer that provides the interface between messages arrived in websocket layer and byte reads from mqtt layer	
+  AWSWebSocketClient (unsigned int bufferSize = 1000);
   ~AWSWebSocketClient();
 
   char* generateAWSPath ();
