@@ -273,9 +273,14 @@ int AWSWebSocketClient::connect(IPAddress ip, uint16_t port){
 int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	//make sure it is disconnect first
 	stop ();	
-	char* path = this->path;
-	  if (this->path == NULL)
+	  char* path = this->path;
+	  //just need to free path if it was generated to connect to AWS
+	  bool freePath = false;
+	  if (this->path == NULL) {
+		  //just generate AWS Path if user does not inform its own (to support the lib usage out of aws)
 		  path = generateAWSPath ();
+		  freePath = true;
+	  }
 	  if (useSSL == true)
 		  beginSSL (host,port,path,"","mqtt");
 	  else
@@ -283,12 +288,15 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	  long now = millis ();
 	  while ( (millis ()-now) < connectionTimeout) {
 		  loop ();		  
-		  if (connected () == 1)
+		  if (connected () == 1) {		  
+			  if (freePath == true)
+				delete path;
 			  return 1;
+		  }
 		  delay (10);
 	  }
-	  
-	  
+	  if (freePath == true)
+		delete path;
 	  return 0;
 }
 
