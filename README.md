@@ -3,6 +3,7 @@ Implementation of a middleware to use AWS MQTT service through websockets. Aimin
 
 ## ChangeLog
 
+* 0.3 - own impl of circular buffer
 * 0.2 - auto reconnection
 * 0.1 - has known limitation and it was not extensively tested
 
@@ -19,16 +20,11 @@ This way we can change the state of your esp8266 devices in realtime, without us
 |aws-sdk-arduino            |https://github.com/awslabs/aws-sdk-arduino                       |aws signing functions|
 |arduinoWebSockets          |https://github.com/Links2004/arduinoWebSockets                   |websocket comm impl  |
 |Paho MQTT for Arduino      |https://projects.eclipse.org/projects/technology.paho/downloads  |mqtt comm impl       |
-|ByteBuffer\*               |https://github.com/siggiorn/arduino-buffered-serial              |circular byte buffer |
-
-\* You may need to delete BufferedSerial as it is not necessary and not compatible with esp8266 (I will probably implement my own version of this circular byte array)
-
 
 ## Limitation
 
-* It was not extensively tested (like stress test, with many messages. it was just simple tests, like subscribe and publich Qos0 and QoS1 messages)
-* May work in arduino without SSL and out of aws environment (but not tested yet, you need to turn off SSL and inform the path - you may find no use for it with arduino, as arduino does not have SSL support. It is better to use MQTT directy without a security layer)
-* some TODO and FIX in the code - I think it is more important to share first ;-)
+* need to be stress tested
+* may work in Arduino out of AWS environment (turn off SSL and set Path) 
 
 ## Usage
 
