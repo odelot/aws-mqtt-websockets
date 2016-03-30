@@ -3,7 +3,7 @@ Implementation of a middleware to use AWS MQTT service through websockets. Aimin
 
 ## ChangeLog
 
-* 1.0 - stable
+* 1.0.alpha - stable
 * 0.3 - own impl of circular buffer
 * 0.2 - auto reconnection
 * 0.1 - has known limitation and it was not extensively tested
