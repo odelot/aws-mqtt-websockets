@@ -21,10 +21,12 @@ void AWSWebSocketClient::webSocketEvent(WStype_t type, uint8_t * payload, size_t
             break;
         case WStype_BIN:
             DEBUG_WEBSOCKET_MQTT("[WSc] get binary length: %u\n", length);
-            //hexdump(payload, lenght);
+            //hexdump(payload, length);
             AWSWebSocketClient::instance->putMessage (payload, length);
             break;
     }
+	
+		
 
 }
 
@@ -59,7 +61,7 @@ AWSWebSocketClient::~AWSWebSocketClient(void) {
 
 
 // convert month to digits
-String getMonth2(String sM) {
+String AWSWebSocketClient::getMonth(String sM) {
   if(sM=="Jan") return "01";
   if(sM=="Feb") return "02";
   if(sM=="Mar") return "03";
@@ -76,50 +78,50 @@ String getMonth2(String sM) {
 }
 
 //get current time (UTC) from aws service (used to sign)
-char* getCurrentTime2(void) {
+char* AWSWebSocketClient::getCurrentTime(void) {
 
+	
     int timeout_busy = 0;
 
     String GmtDate;
     char* dateStamp = new char[15]();
-	strcpy (dateStamp,"19860618123600");
-
-    WiFiClient* client = new WiFiClient();;
-    if (client->connect("aws.amazon.com", 80)) {
+	strcpy (dateStamp,"19860618123600");	
+    
+    if (timeClient.connect("aws.amazon.com", 80)) {
 
       // send a bad header on purpose, so we get a 400 with a DATE: timestamp
-      const char* timeServerGet = (char*)"GET example.com/ HTTP/1.1";
-
       //Send Request
-      client->println("GET example.com/ HTTP/1.1");
-      client->println("Connection: close");
-      client->println();
+      timeClient.println("GET example.com/ HTTP/1.1");
+      timeClient.println("Connection: close");
+      timeClient.println();
 
-      while((!client->available()) && (timeout_busy++ < 5000)){
+      while((!timeClient.available()) && (timeout_busy++ < 5000)){
         // Wait until the client sends some data
         delay(1);
       }
 
       // kill client if timeout
       if(timeout_busy >= 5000) {
-          client->flush();
-          client->stop();
+          timeClient.flush();
+          timeClient.stop();		  
           DEBUG_WEBSOCKET_MQTT("timeout receiving timeserver data");
+		  
           return dateStamp;
       }
 
       // read the http GET Response
-      String req2 = client->readString();
+      String req2 = timeClient.readString();
 
       // close connection
       delay(1);
-      client->flush();
-      client->stop();
+      timeClient.flush();
+      timeClient.stop();
+	  
 
       int ipos = req2.indexOf("Date:");
       if(ipos > 0) {
         String gmtDate = req2.substring(ipos, ipos + 35);
-        String utctime = gmtDate.substring(18,22) + getMonth2(gmtDate.substring(14,17)) + gmtDate.substring(11,13) + gmtDate.substring(23,25) + gmtDate.substring(26,28) + gmtDate.substring(29,31);
+        String utctime = gmtDate.substring(18,22) + getMonth(gmtDate.substring(14,17)) + gmtDate.substring(11,13) + gmtDate.substring(23,25) + gmtDate.substring(26,28) + gmtDate.substring(29,31);
         utctime.substring(0, 14).toCharArray(dateStamp, 15);
       }
     }
@@ -127,17 +129,18 @@ char* getCurrentTime2(void) {
        DEBUG_WEBSOCKET_MQTT("did not connect to timeserver");
     }
 
-    delete client;
+   
     timeout_busy=0;     // reset timeout
-
+	
+	
     return dateStamp;   // Return latest or last good dateStamp
 }
 
 //generate AWS url path, signed using url parameters
 char* AWSWebSocketClient::generateAWSPath () {
 
-	// set date and time
-    const char* dateTime = getCurrentTime2 ();
+	 
+    char* dateTime = getCurrentTime ();
     char* awsService = "iotdevicegateway";
     char* awsDate = new char[9]();
     strncpy(awsDate, dateTime, 8);
@@ -146,7 +149,7 @@ char* AWSWebSocketClient::generateAWSPath () {
     strncpy(awsTime, dateTime + 8, 6);
     awsTime[6] = '\0';
     delete[] dateTime;
-	char* credentialScope = new char[50]();
+	char* credentialScope = new char[strlen(awsDate)+strlen(awsRegion)+strlen(awsService)+16]();
 	sprintf(credentialScope, "%s/%s/%s/aws4_request",awsDate,awsRegion,awsService);
 	String key_credential (awsKeyID);
 	key_credential+="/";
@@ -157,19 +160,19 @@ char* AWSWebSocketClient::generateAWSPath () {
 	const char* canonicalUri = "/mqtt";
 	const char* algorithm = "AWS4-HMAC-SHA256";
 
-	char* canonicalQuerystring = new char[500]();
+	char* canonicalQuerystring = new char[strlen(algorithm)+strlen(key_credential.c_str())+strlen(awsDate)+strlen(awsTime)+200]();
 	sprintf(canonicalQuerystring, "%sX-Amz-Algorithm=%s", canonicalQuerystring,algorithm);
 	sprintf(canonicalQuerystring, "%s&X-Amz-Credential=%s", canonicalQuerystring,key_credential.c_str());
 	sprintf(canonicalQuerystring, "%s&X-Amz-Date=%sT%sZ", canonicalQuerystring, awsDate,awsTime);
-	sprintf(canonicalQuerystring, "%s&X-Amz-Expires=86400", canonicalQuerystring, awsDomain); //sign will last one day
-	sprintf(canonicalQuerystring, "%s&X-Amz-SignedHeaders=host", canonicalQuerystring, awsDomain);
+	sprintf(canonicalQuerystring, "%s&X-Amz-Expires=86400", canonicalQuerystring); //sign will last one day
+	sprintf(canonicalQuerystring, "%s&X-Amz-SignedHeaders=host", canonicalQuerystring);
 
-	char* canonicalHeaders = new char[150]();
+	char* canonicalHeaders = new char[strlen (awsDomain)+7]();
 	sprintf(canonicalHeaders, "%shost:%s\n", canonicalHeaders,awsDomain);
 	SHA256* sha256 = new SHA256();
 	char* payloadHash = (*sha256)("", 0);
 	delete sha256;
-	char* canonicalRequest = new char[500]();
+	char* canonicalRequest = new char[strlen (method)+ strlen (canonicalUri)+strlen(canonicalQuerystring)+strlen(canonicalHeaders)+strlen(payloadHash)+10]();
 
 	sprintf(canonicalRequest, "%s%s\n%s\n%s\n%s\nhost\n%s", canonicalRequest,method,canonicalUri,canonicalQuerystring,canonicalHeaders,payloadHash);
 	delete[] payloadHash;
@@ -179,7 +182,7 @@ char* AWSWebSocketClient::generateAWSPath () {
 	sha256 = new SHA256();
 	char* requestHash = (*sha256)(canonicalRequest, strlen (canonicalRequest));
 	delete sha256;
-	char* stringToSign = new char[500]();
+	char* stringToSign = new char[strlen (algorithm)+ strlen(awsDate)+strlen (awsTime)+strlen(credentialScope)+strlen(requestHash)+6]();
 	sprintf(stringToSign, "%s%s\n%sT%sZ\n%s\n%s", stringToSign,algorithm,awsDate,awsTime,credentialScope,requestHash);
 	delete[] requestHash;
 	delete[] credentialScope;
@@ -271,7 +274,8 @@ int AWSWebSocketClient::connect(IPAddress ip, uint16_t port){
 
 int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	//make sure it is disconnect first
-	stop ();	
+	  const char* protocol = "mqtt";
+	  stop ();	
 	  char* path = this->path;
 	  //just need to free path if it was generated to connect to AWS
 	  bool freePath = false;
@@ -281,9 +285,9 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 		  freePath = true;
 	  }
 	  if (useSSL == true)
-		  beginSSL (host,port,path,"","mqtt");
+		  beginSSL (host,port,path,"",protocol);
 	  else
-		  begin (host,port,path,"mqtt");
+		  begin (host,port,path,protocol);
 	  long now = millis ();
 	  while ( (millis ()-now) < connectionTimeout) {
 		  loop ();		  

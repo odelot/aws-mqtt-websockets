@@ -24,8 +24,8 @@ public:
   //bufferSize defines the size of the circular byte buffer that provides the interface between messages arrived in websocket layer and byte reads from mqtt layer	
   AWSWebSocketClient (unsigned int bufferSize = 1000);
   ~AWSWebSocketClient();
+
   
-  char* generateAWSPath ();
 
   int connect(IPAddress ip, uint16_t port);
   int connect(const char *host, uint16_t port);
@@ -51,8 +51,18 @@ public:
   AWSWebSocketClient& setAWSSecretKey(const char * awsSecKey);
   AWSWebSocketClient& setAWSKeyID(const char * awsKeyID);  
   AWSWebSocketClient& setPath(const char * path);
+  
+
       
   protected:
+  //generate AWS signed path
+  char* generateAWSPath ();
+  
+  //convert the month info
+  String getMonth(String sM);
+  //get current time (UTC) from aws service (used to sign)
+  char* getCurrentTime(void);
+  
   //static instance of aws websocket client
   static AWSWebSocketClient* instance;
   //keep the connection state
@@ -80,6 +90,9 @@ public:
 
   //circular buffer to keep incoming messages from websocket
   CircularByteBuffer bb;
+  
+  //connection to get current time
+  WiFiClient timeClient;
 };
 
 #endif
