@@ -34,7 +34,7 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 ## Memory Leak
 
-Arduino Core for ESP8266 may have a issue that leads the program to lose heap space each time it connects and disconnects from a server. We've noticed this issue here (https://github.com/odelot/aws-mqtt-websockets/issues/2#issuecomment-205034367) and it seems that we were not the first one to notice that. Luckly, there is a fix (found by @daniele-salvagni, thanks :-) ): 
+Arduino Core for ESP8266 may have an issue that leads the program to lose heap space each time it connects and disconnects from a server. We've noticed this issue here (https://github.com/odelot/aws-mqtt-websockets/issues/2#issuecomment-205034367) and it seems that we were not the first one to notice that. Luckly, there is a fix (found by @daniele-salvagni, thanks :-) ): 
 
 FIX: https://github.com/esp8266/Arduino/issues/230#issuecomment-116816950 
 
