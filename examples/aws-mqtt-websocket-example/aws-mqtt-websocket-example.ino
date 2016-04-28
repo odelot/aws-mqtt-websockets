@@ -20,10 +20,11 @@
 #include <MQTTClient.h>
 
 
+
 //AWS MQTT Websocket
 #include "Client.h"
 #include "AWSWebSocketClient.h"
-#include "ByteBuffer.h"
+#include "CircularByteBuffer.h"
 
 //AWS IOT config, change these:
 char wifi_ssid[]       = "your-ssid";
@@ -36,16 +37,18 @@ const char* aws_topic  = "$aws/things/your-device/shadow/update";
 int port = 443;
 
 //MQTT config
-const int maxMQTTpackageSize = 128;
+const int maxMQTTpackageSize = 512;
 const int maxMQTTMessageHandlers = 1;
 
 ESP8266WiFiMulti WiFiMulti;
 
-AWSWebSocketClient awsWSclient;
+AWSWebSocketClient awsWSclient(1000);
 
 IPStack ipstack(awsWSclient);
-MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers> client = MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers>(ipstack);
+MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers> *client = NULL;
 
+//# of connections
+long connection = 0;
 
 //generate random mqtt clientID
 char* generateClientID () {
@@ -80,15 +83,33 @@ void messageArrived(MQTT::MessageData& md)
   delete msg;
 }
 
-
 //connects to websocket layer and mqtt layer
 bool connect () {
 
-   //make sure mqtt client is disconnect   
-   if (client.isConnected ()) {    
-    client.disconnect ();
-   }
-   
+    if (client == NULL) {
+      client = new MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers>(ipstack);
+    } else {
+
+      if (client->isConnected ()) {    
+        client->disconnect ();
+      }  
+      delete client;
+      client = new MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers>(ipstack);
+    }
+
+
+    //delay is not necessary... it just help us to get a "trustful" heap space value
+    delay (1000);
+    Serial.print (millis ());
+    Serial.print (" - conn: ");
+    Serial.print (++connection);
+    Serial.print (" - (");
+    Serial.print (ESP.getFreeHeap ());
+    Serial.println (")");
+
+
+
+
    int rc = ipstack.connect(aws_endpoint, port);
     if (rc != 1)
     {
@@ -97,13 +118,15 @@ bool connect () {
     } else {
       Serial.println("websocket layer connected");
     }
-    
+
 
     Serial.println("MQTT connecting");
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.MQTTVersion = 3;
-    data.clientID.cstring = generateClientID ();
-    rc = client.connect(data);
+    char* clientID = generateClientID ();
+    data.clientID.cstring = clientID;
+    rc = client->connect(data);
+    delete[] clientID;
     if (rc != 0)
     {
       Serial.print("error connection to MQTT server");
@@ -117,7 +140,7 @@ bool connect () {
 //subscribe to a mqtt topic
 void subscribe () {
    //subscript to a topic
-    int rc = client.subscribe(aws_topic, MQTT::QOS0, messageArrived);
+    int rc = client->subscribe(aws_topic, MQTT::QOS0, messageArrived);
     if (rc != 0) {
       Serial.print("rc from MQTT subscribe is ");
       Serial.println(rc);
@@ -131,20 +154,20 @@ void sendmessage () {
     //send a message
     MQTT::Message message;
     char buf[100];
-    strcpy(buf, "{\"state\":{\"reported\":{\"foo\": \"bar\"}, \"desired\":{}}}");
+    strcpy(buf, "{\"state\":{\"reported\":{\"on\": false}, \"desired\":{\"on\": false}}}");
     message.qos = MQTT::QOS0;
     message.retained = false;
     message.dup = false;
     message.payload = (void*)buf;
     message.payloadlen = strlen(buf)+1;
-    int rc = client.publish(aws_topic, message); 
+    int rc = client->publish(aws_topic, message); 
 }
 
 
 void setup() {
     Serial.begin (115200);
     delay (2000);
-    //Serial.setDebugOutput(1);
+    Serial.setDebugOutput(1);
 
     //fill with ssid and wifi password
     WiFiMulti.addAP(wifi_ssid, wifi_password);
@@ -162,7 +185,6 @@ void setup() {
     awsWSclient.setAWSSecretKey(aws_secret);
     awsWSclient.setUseSSL(true);
 
-    //example... as soon get a connection, subscribe to a topic and send a message
     if (connect ()){
       subscribe ();
       sendmessage ();
@@ -172,12 +194,13 @@ void setup() {
 
 void loop() {
   //keep the mqtt up and running
-  if (awsWSclient.connected ())
-    client.yield();
-  else {
+  if (awsWSclient.connected ()) {    
+      client->yield();
+  } else {
     //handle reconnection
     if (connect ()){
       subscribe ();      
     }
-  }    
+  }
+
 }
