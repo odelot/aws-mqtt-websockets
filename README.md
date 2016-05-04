@@ -18,7 +18,7 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 | Library                   | Link                                                            | Use                 |
 |---------------------------|-----------------------------------------------------------------|---------------------|
-|aws-sdk-arduino            |https://github.com/awslabs/aws-sdk-arduino                       |aws signing functions|
+|aws-sdk-arduino            |https://github.com/svdgraaf/aws-sdk-arduino                      |aws signing functions|
 |arduinoWebSockets          |https://github.com/Links2004/arduinoWebSockets                   |websocket comm impl  |
 |Paho MQTT for Arduino      |https://projects.eclipse.org/projects/technology.paho/downloads  |mqtt comm impl       |
 
