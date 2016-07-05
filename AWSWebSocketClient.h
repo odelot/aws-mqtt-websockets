@@ -56,7 +56,7 @@ public:
       
   protected:
   //generate AWS signed path
-  char* generateAWSPath ();
+  char* generateAWSPath (uint16_t port);
   
   //convert the month info
   String getMonth(String sM);

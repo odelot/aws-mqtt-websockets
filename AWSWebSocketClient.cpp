@@ -137,7 +137,7 @@ char* AWSWebSocketClient::getCurrentTime(void) {
 }
 
 //generate AWS url path, signed using url parameters
-char* AWSWebSocketClient::generateAWSPath () {
+char* AWSWebSocketClient::generateAWSPath (uint16_t port) {
 
 	 
     char* dateTime = getCurrentTime ();
@@ -168,7 +168,7 @@ char* AWSWebSocketClient::generateAWSPath () {
 	sprintf(canonicalQuerystring, "%s&X-Amz-SignedHeaders=host", canonicalQuerystring);
 
 	char* canonicalHeaders = new char[strlen (awsDomain)+7]();
-	sprintf(canonicalHeaders, "%shost:%s\n", canonicalHeaders,awsDomain);
+	sprintf(canonicalHeaders, "%shost:%s:%d\n", canonicalHeaders,awsDomain,port);
 	SHA256* sha256 = new SHA256();
 	char* payloadHash = (*sha256)("", 0);
 	delete sha256;
@@ -281,7 +281,7 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	  bool freePath = false;
 	  if (this->path == NULL) {
 		  //just generate AWS Path if user does not inform its own (to support the lib usage out of aws)
-		  path = generateAWSPath ();
+		  path = generateAWSPath (port);
 		  freePath = true;
 	  }
 	  if (useSSL == true)
