@@ -167,8 +167,10 @@ char* AWSWebSocketClient::generateAWSPath (uint16_t port) {
 	sprintf(canonicalQuerystring, "%s&X-Amz-Expires=86400", canonicalQuerystring); //sign will last one day
 	sprintf(canonicalQuerystring, "%s&X-Amz-SignedHeaders=host", canonicalQuerystring);
 
-	char* canonicalHeaders = new char[strlen (awsDomain)+7]();
-	sprintf(canonicalHeaders, "%shost:%s:%d\n", canonicalHeaders,awsDomain,port);
+	String portString = String(port);
+	char* canonicalHeaders = new char[strlen (awsDomain)+ strlen (portString.c_str())+ 7]();
+
+	sprintf(canonicalHeaders, "%shost:%s:%s\n", canonicalHeaders,awsDomain,portString.c_str());
 	SHA256* sha256 = new SHA256();
 	char* payloadHash = (*sha256)("", 0);
 	delete sha256;
