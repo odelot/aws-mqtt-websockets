@@ -27,7 +27,7 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 ## Installation
 
-1. Configure your arduino ide to compile and upload programs to ESP8266 (Arduino core for ESP8266 - details https://github.com/esp8266/Arduino)**
+1. Configure your arduino ide to compile and upload programs to ESP8266 (Arduino core for ESP8266 - details https://github.com/esp8266/Arduino )\*\*
 2. Install all the dependencies as Arduino Libraries
 3. Install aws-mqtt-websockets as Arduino Library as well
 4. Configure the example file with your AWS credencials and endpoints
