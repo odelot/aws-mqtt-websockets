@@ -3,7 +3,8 @@ Implementation of a middleware to use AWS MQTT service through websockets. Aimin
 
 ## ChangeLog
 
-* 1.0.alpha - stable
+* 1.0.1 - works with arduinoWebSockets v.2.0.5 and arduino/esp sdk 2.3.0
+* 1.0.alpha - stable - works with arduinoWebSockets v.2.0.2 and arduino/esp sdk 2.1.0
 * 0.3 - own impl of circular buffer
 * 0.2 - auto reconnection
 * 0.1 - has known limitation and it was not extensively tested
@@ -18,23 +19,25 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 | Library                   | Link                                                            | Use                 |
 |---------------------------|-----------------------------------------------------------------|---------------------|
-|aws-sdk-arduino            |https://github.com/svdgraaf/aws-sdk-arduino                      |aws signing functions|
+|aws-sdk-arduino*            |https://github.com/svdgraaf/aws-sdk-arduino                      |aws signing functions|
 |arduinoWebSockets          |https://github.com/Links2004/arduinoWebSockets                   |websocket comm impl  |
 |Paho MQTT for Arduino      |https://projects.eclipse.org/projects/technology.paho/downloads  |mqtt comm impl       |
 
+\* copy files from src/common folder to the library root folder and then copy the files from src/esp8266 folder in the library root folder (overwritting the ones from common folder) - details in the aws-sdk-arduino library's github page 
+
 ## Installation
 
-1. Configure your arduino ide to compile and upload programs to ESP8266 (Arduino core for ESP8266 - details https://github.com/esp8266/Arduino)*
+1. Configure your arduino ide to compile and upload programs to ESP8266 (Arduino core for ESP8266 - details https://github.com/esp8266/Arduino)**
 2. Install all the dependencies as Arduino Libraries
 3. Install aws-mqtt-websockets as Arduino Library as well
 4. Configure the example file with your AWS credencials and endpoints
 5. Compile, upload and run!
 
-\* The library was tested with 2.1.0-rc2 stage version of Arduino core for ESP8266 and with the most up to date github code (see instruction in their page to use the git version) - No matter what version you chose, you may need to change it with the fix below
+\** The library was tested with 2.3.0 stable version of Arduino core for ESP8266
 
 ## Memory Leak
 
-Arduino Core for ESP8266 may have an issue that leads the program to lose heap space each time it connects and disconnects from a server. We've noticed this issue here (https://github.com/odelot/aws-mqtt-websockets/issues/2#issuecomment-205034367) and it seems that we were not the first one to notice that. Luckly, there is a fix (found by @daniele-salvagni, thanks :-) ): 
+Arduino Core for ESP8266 (v.2.1.0) may have an issue that leads the program to lose heap space each time it connects and disconnects from a server. We've noticed this issue here (https://github.com/odelot/aws-mqtt-websockets/issues/2#issuecomment-205034367) and it seems that we were not the first one to notice that. Luckly, there is a fix (found by @daniele-salvagni, thanks :-) ): 
 
 FIX: https://github.com/esp8266/Arduino/issues/230#issuecomment-116816950 
 
