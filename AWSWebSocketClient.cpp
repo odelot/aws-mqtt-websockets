@@ -31,15 +31,16 @@ void AWSWebSocketClient::webSocketEvent(WStype_t type, uint8_t * payload, size_t
 }
 
 //constructor
-AWSWebSocketClient::AWSWebSocketClient (unsigned int bufferSize) {
+AWSWebSocketClient::AWSWebSocketClient (unsigned int bufferSize, unsigned long connectionTimeout) {
     useSSL = true;
-    connectionTimeout = 5000; //5 seconds
+    _connectionTimeout = connectionTimeout;
     AWSWebSocketClient:instance = this;
     onEvent(AWSWebSocketClient::webSocketEvent);
     awsRegion = NULL;
     awsSecKey = NULL;
     awsKeyID = NULL;
     awsDomain = NULL;
+	awsToken = NULL;
     path = NULL;
 	_connected = false;	
     bb.init (bufferSize); //1000 bytes of circular buffer... maybe it is too big
@@ -56,7 +57,9 @@ AWSWebSocketClient::~AWSWebSocketClient(void) {
     if (awsKeyID != NULL)
         delete[] awsKeyID;
     if (path != NULL)
-        delete[] path;
+        delete[] path;	
+	if (awsToken != NULL)
+        delete[] awsToken;
 }
 
 
@@ -136,79 +139,112 @@ char* AWSWebSocketClient::getCurrentTime(void) {
     return dateStamp;   // Return latest or last good dateStamp
 }
 
+
+/* Converts an integer value to its hex character*/
+char to_hex(char code) {
+  static char hex[] = "0123456789ABCDEF";
+  return hex[code & 15];
+}
+
+/* Returns a url-encoded version of str */
+/* IMPORTANT: be sure to free() the returned string after use */
+char* url_encode(const char* str) {
+  const char* pstr = str;
+  char *buf = (char*) malloc(strlen(str) * 3 + 1), *pbuf = buf;
+  while (*pstr) {
+    if (isalnum(*pstr) || *pstr == '-' || *pstr == '_' || *pstr == '.' || *pstr == '~') 
+      *pbuf++ = *pstr;
+    else if (*pstr == ' ') 
+      *pbuf++ = '+';
+    else 
+      *pbuf++ = '%', *pbuf++ = to_hex(*pstr >> 4), *pbuf++ = to_hex(*pstr & 15);
+    pstr++;
+  }
+  *pbuf = '\0';
+  return buf;
+}
+
+
 //generate AWS url path, signed using url parameters
 char* AWSWebSocketClient::generateAWSPath (uint16_t port) {
 
-	 
+	
     char* dateTime = getCurrentTime ();
-    char* awsService = "iotdevicegateway";
-    char* awsDate = new char[9]();
+    String awsService = F("iotdevicegateway");
+    char awsDate[9];
     strncpy(awsDate, dateTime, 8);
     awsDate[8] = '\0';
-    char* awsTime = new char[7]();
+    char awsTime[7];
     strncpy(awsTime, dateTime + 8, 6);
     awsTime[6] = '\0';
     delete[] dateTime;
-	char* credentialScope = new char[strlen(awsDate)+strlen(awsRegion)+strlen(awsService)+16]();
-	sprintf(credentialScope, "%s/%s/%s/aws4_request",awsDate,awsRegion,awsService);
+	char credentialScope[strlen(awsDate)+strlen(awsRegion)+strlen(awsService.c_str())+16];
+	sprintf(credentialScope, "%s/%s/%s/aws4_request",awsDate,awsRegion,awsService.c_str());
 	String key_credential (awsKeyID);
 	key_credential+="/";
 	key_credential+=credentialScope;
 	//FIX tried a lot of escape functions, but no one was equal to escapeURL from javascript
-	key_credential.replace ("/","%2F");
-	const char* method = "GET";
-	const char* canonicalUri = "/mqtt";
-	const char* algorithm = "AWS4-HMAC-SHA256";
-
-	char* canonicalQuerystring = new char[strlen(algorithm)+strlen(key_credential.c_str())+strlen(awsDate)+strlen(awsTime)+200]();
-	sprintf(canonicalQuerystring, "%sX-Amz-Algorithm=%s", canonicalQuerystring,algorithm);
+	char* ekey_credential = url_encode (key_credential.c_str ());
+	key_credential = ekey_credential;
+	free (ekey_credential);
+	
+	
+	String method = F("GET");
+	String canonicalUri = F("/mqtt");
+	String algorithm = F("AWS4-HMAC-SHA256");
+	String token = "";
+	//adding AWS STS security token for temporary AIM credentials
+	if (awsToken != NULL) {
+		char* eToken = url_encode (awsToken);
+		token = eToken;
+		free (eToken);
+	}
+	
+	char canonicalQuerystring [strlen(algorithm.c_str())+strlen(key_credential.c_str())+strlen(awsDate)+strlen(awsTime)+strlen (token.c_str())+225];
+	sprintf(canonicalQuerystring, "X-Amz-Algorithm=%s", algorithm.c_str());
 	sprintf(canonicalQuerystring, "%s&X-Amz-Credential=%s", canonicalQuerystring,key_credential.c_str());
 	sprintf(canonicalQuerystring, "%s&X-Amz-Date=%sT%sZ", canonicalQuerystring, awsDate,awsTime);
 	sprintf(canonicalQuerystring, "%s&X-Amz-Expires=86400", canonicalQuerystring); //sign will last one day
 	sprintf(canonicalQuerystring, "%s&X-Amz-SignedHeaders=host", canonicalQuerystring);
 
 	String portString = String(port);
-	char* canonicalHeaders = new char[strlen (awsDomain)+ strlen (portString.c_str())+ 8]();
+	char canonicalHeaders [strlen (awsDomain)+ strlen (portString.c_str())+ 8];
 
-	sprintf(canonicalHeaders, "%shost:%s:%s\n", canonicalHeaders,awsDomain,portString.c_str());
+	sprintf(canonicalHeaders, "host:%s:%s\n", awsDomain,portString.c_str());
 	SHA256* sha256 = new SHA256();
 	char* payloadHash = (*sha256)("", 0);
 	delete sha256;
-	char* canonicalRequest = new char[strlen (method)+ strlen (canonicalUri)+strlen(canonicalQuerystring)+strlen(canonicalHeaders)+strlen(payloadHash)+10]();
+	char canonicalRequest [strlen (method.c_str())+ strlen (canonicalUri.c_str())+strlen(canonicalQuerystring)+strlen(canonicalHeaders)+strlen(payloadHash)+10];
 
-	sprintf(canonicalRequest, "%s%s\n%s\n%s\n%s\nhost\n%s", canonicalRequest,method,canonicalUri,canonicalQuerystring,canonicalHeaders,payloadHash);
+	sprintf(canonicalRequest, "%s\n%s\n%s\n%s\nhost\n%s", method.c_str(),canonicalUri.c_str(),canonicalQuerystring,canonicalHeaders,payloadHash);
 	delete[] payloadHash;
-	delete[] canonicalHeaders;
+	
 
 
 	sha256 = new SHA256();
 	char* requestHash = (*sha256)(canonicalRequest, strlen (canonicalRequest));
 	delete sha256;
-	char* stringToSign = new char[strlen (algorithm)+ strlen(awsDate)+strlen (awsTime)+strlen(credentialScope)+strlen(requestHash)+6]();
-	sprintf(stringToSign, "%s%s\n%sT%sZ\n%s\n%s", stringToSign,algorithm,awsDate,awsTime,credentialScope,requestHash);
+	char stringToSign[strlen (algorithm.c_str())+ strlen(awsDate)+strlen (awsTime)+strlen(credentialScope)+strlen(requestHash)+6];
+	sprintf(stringToSign, "%s\n%sT%sZ\n%s\n%s", algorithm.c_str(),awsDate,awsTime,credentialScope,requestHash);
 	delete[] requestHash;
-	delete[] credentialScope;
-	delete[] canonicalRequest;	
-	delete[] awsTime;
 
 	/* Allocate memory for the signature */
-    char* signature = new char[HASH_HEX_LEN2 + 1]();
+    char signature [HASH_HEX_LEN2 + 1];
 
     /* Create the signature key */
     /* + 4 for "AWS4" */
     int keyLen = strlen(awsSecKey) + 4;
-    char* key = new char[keyLen + 1]();
+    char key[keyLen + 1];
     sprintf(key, "AWS4%s", awsSecKey);
 
-    char* k1 = hmacSha256(key, keyLen, awsDate, strlen(awsDate));
-	delete[] awsDate;
-    delete[] key;
+    char* k1 = hmacSha256(key, keyLen, awsDate, strlen(awsDate));	
+    
     char* k2 = hmacSha256(k1, SHA256_DEC_HASH_LEN, awsRegion,
             strlen(awsRegion));
 
     delete[] k1;
-    char* k3 = hmacSha256(k2, SHA256_DEC_HASH_LEN, awsService,
-            strlen(awsService));
+    char* k3 = hmacSha256(k2, SHA256_DEC_HASH_LEN, awsService.c_str(),
+            strlen(awsService.c_str()));
 
 	delete[] k2;
     char* k4 = hmacSha256(k3, SHA256_DEC_HASH_LEN, "aws4_request", 12);
@@ -216,8 +252,7 @@ char* AWSWebSocketClient::generateAWSPath (uint16_t port) {
 	delete[] k3;
     char* k5 = hmacSha256(k4, SHA256_DEC_HASH_LEN, stringToSign, strlen(stringToSign));
 
-	delete[] k4;
-	delete[] stringToSign;
+	delete[] k4;	
     /* Convert the chars in hash to hex for signature. */
     for (int i = 0; i < SHA256_DEC_HASH_LEN; ++i) {
         sprintf(signature + 2 * i, "%02lx", 0xff & (unsigned long) k5[i]);
@@ -225,18 +260,23 @@ char* AWSWebSocketClient::generateAWSPath (uint16_t port) {
     delete[] k5;
 
 	sprintf(canonicalQuerystring, "%s&X-Amz-Signature=%s", canonicalQuerystring, signature);
-	delete[] signature;
-
-	char* requestUri = new char[strlen(canonicalUri)+strlen(canonicalQuerystring)+2]();
-	//sprintf(requestUri, "%swss://%s%s?%s", requestUri, awsDomain,canonicalUri,canonicalQuerystring);
-	sprintf(requestUri, "%s%s?%s", requestUri, canonicalUri,canonicalQuerystring);
-	delete[] canonicalQuerystring;
-
+	
+	//adding AWS STS security token for temporary AIM credentials
+	if (awsToken != NULL) {		
+		sprintf(canonicalQuerystring, "%s&X-Amz-Security-Token=%s", canonicalQuerystring,token.c_str());		
+	}
+	
+	char* requestUri = new char[strlen(canonicalUri.c_str())+strlen(canonicalQuerystring)+2]();	
+	sprintf(requestUri, "%s?%s", canonicalUri.c_str(),canonicalQuerystring);
+	
 	return requestUri;
+	 
 
 }
 
 AWSWebSocketClient& AWSWebSocketClient::setAWSRegion(const char * awsRegion) {
+	if (this->awsRegion != NULL)
+        delete[] this->awsRegion;
     int len = strlen(awsRegion) + 1;
     this->awsRegion = new char[len]();
     strcpy(this->awsRegion, awsRegion);
@@ -244,6 +284,8 @@ AWSWebSocketClient& AWSWebSocketClient::setAWSRegion(const char * awsRegion) {
 }
 
 AWSWebSocketClient& AWSWebSocketClient::setAWSDomain(const char * awsDomain) {
+	if (this->awsDomain != NULL)
+        delete[] this->awsDomain;
     int len = strlen(awsDomain) + 1;
     this->awsDomain = new char[len]();
     strcpy(this->awsDomain, awsDomain);
@@ -251,22 +293,59 @@ AWSWebSocketClient& AWSWebSocketClient::setAWSDomain(const char * awsDomain) {
 }
 
 AWSWebSocketClient& AWSWebSocketClient::setAWSSecretKey(const char * awsSecKey) {
-    int len = strlen(awsSecKey) + 1;
+    if (this->awsSecKey != NULL) 
+	{
+		if (strlen (awsSecKey) ==  strlen(this->awsSecKey)){
+			strcpy(this->awsSecKey, awsSecKey);
+			return *this;
+		} else {			
+			delete[] this->awsSecKey;	
+		}
+        
+	}
+	int len = strlen(awsSecKey) + 1;
     this->awsSecKey = new char[len]();
     strcpy(this->awsSecKey, awsSecKey);
 	return *this;
 }
 AWSWebSocketClient& AWSWebSocketClient::setAWSKeyID(const char * awsKeyID) {
-    int len = strlen(awsKeyID) + 1;
+    if (this->awsKeyID != NULL) {
+		if (strlen (awsKeyID) ==  strlen(this->awsKeyID)){
+			strcpy(this->awsKeyID, awsKeyID);
+			return *this;
+		} else {			
+			delete[] this->awsKeyID;	
+		}	
+	}
+	
+	int len = strlen(awsKeyID) + 1;
     this->awsKeyID = new char[len]();
     strcpy(this->awsKeyID, awsKeyID);
 	return *this;
 }
 
 AWSWebSocketClient& AWSWebSocketClient::setPath(const char * path) {
-    int len = strlen(path) + 1;
+    if (this->path != NULL)
+        delete[] this->path;
+	int len = strlen(path) + 1;
     this->path = new char[len]();
     strcpy(this->path, path);
+	return *this;
+}
+
+AWSWebSocketClient& AWSWebSocketClient::setAWSToken(const char * awsToken) {
+	if (this->awsToken != NULL)
+       {
+		if (strlen (awsToken) ==  strlen(this->awsToken)){
+			strcpy(this->awsToken, awsToken);
+			return *this;
+		} else {			
+			delete[] this->awsToken;	
+		}	
+	}
+	int len = strlen(awsToken) + 1;
+    this->awsToken = new char[len]();
+    strcpy(this->awsToken, awsToken);
 	return *this;
 }
 
@@ -281,17 +360,17 @@ int AWSWebSocketClient::connect(const char *host, uint16_t port) {
 	  char* path = this->path;
 	  //just need to free path if it was generated to connect to AWS
 	  bool freePath = false;
-	  if (this->path == NULL) {
+	  if (this->path == NULL) {		  
 		  //just generate AWS Path if user does not inform its own (to support the lib usage out of aws)
 		  path = generateAWSPath (port);
-		  freePath = true;
+		  freePath = true;		  
 	  }
 	  if (useSSL == true)
 		  beginSSL (host,port,path,"",protocol);
 	  else
 		  begin (host,port,path,protocol);
 	  long now = millis ();
-	  while ( (millis ()-now) < connectionTimeout) {
+	  while ( (millis ()-now) < _connectionTimeout) {
 		  loop ();		  
 		  if (connected () == 1) {		  
 			  if (freePath == true)

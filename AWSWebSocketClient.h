@@ -8,7 +8,8 @@
 #include "CircularByteBuffer.h"
 #include "sha256.h"
 #include "Utils.h"
-#include "AWSClient2.h"
+
+static const int HASH_HEX_LEN2 = 64;
 
 
 //#define DEBUG_WEBSOCKET_MQTT(...) os_printf( __VA_ARGS__ )
@@ -22,7 +23,7 @@ class AWSWebSocketClient : public Client, private WebSocketsClient {
 public:
 
   //bufferSize defines the size of the circular byte buffer that provides the interface between messages arrived in websocket layer and byte reads from mqtt layer	
-  AWSWebSocketClient (unsigned int bufferSize = 1000);
+  AWSWebSocketClient (unsigned int bufferSize = 1000, unsigned long connectionTimeout = 50000);
   ~AWSWebSocketClient();
 
   
@@ -51,6 +52,7 @@ public:
   AWSWebSocketClient& setAWSSecretKey(const char * awsSecKey);
   AWSWebSocketClient& setAWSKeyID(const char * awsKeyID);  
   AWSWebSocketClient& setPath(const char * path);
+  AWSWebSocketClient& setAWSToken(const char * awsToken);
   
 
       
@@ -75,8 +77,8 @@ public:
   //enable ssl... if your using mqtt over websockets at AWS IoT service, it must be enabled
   bool useSSL;
 
-  //connection timeout (but it seems it is not working as I've expected... many I should control it by the receipt of the connection message)
-  long connectionTimeout;
+  //connection timeout 
+  unsigned long _connectionTimeout;
 
   char* path;
   /* Name of region, eg. "us-east-1" in "kinesis.us-east-1.amazonaws.com". */
@@ -87,6 +89,9 @@ public:
   char* awsSecKey;
   /* The user's AWS Access Key ID for accessing the AWS Resource. */
   char* awsKeyID;
+  /* The user's AWS Security Token for temporary credentials (just use with AWS STS). */
+  char* awsToken;
+  
 
   //circular buffer to keep incoming messages from websocket
   CircularByteBuffer bb;
