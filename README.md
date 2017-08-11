@@ -3,6 +3,7 @@ Implementation of a middleware to use AWS MQTT service through websockets. Aimin
 
 ## ChangeLog
 
+* 1.1.0 - can use AWS STS temporary credentials - change some dynamic to static memory allocation to avoid memory fragmentation
 * 1.0.1 - works with arduinoWebSockets v.2.0.5 and arduino/esp sdk 2.3.0
 * 1.0.alpha - stable - works with arduinoWebSockets v.2.0.2 and arduino/esp sdk 2.1.0
 * 0.3 - own impl of circular buffer
@@ -65,4 +66,17 @@ int port = 443;
 //MQTT config
 const int maxMQTTpackageSize = 128;
 const int maxMQTTMessageHandlers = 1;
+ ```
+ 
+ ## AWS STS Temporary Credential
+ 
+ To avoid having a long term credential hardcoded in our device, you can create temporary credentials that will last up to 36 hours using the AWS STS service (learn more here http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html).
+ 
+ Using STS you will get a AWS key, AWS secret and AWS token. To inform the AWS token, use the following method
+ 
+ ```
+ //it is just an example. As the credential last up to 36 hours, you will need to get temporary credential every 36 hours
+ //you won't use it hard coded
+ char token[] = 'FQoDYXdzEHgaDN7ZQSxqszH+LgBTXCKsAeU5dsW/g3BK01wyYoBk0vnCfz+D19w2kslSC5drDXyN9Nxx14WcgrOOWNxHsLRDPkcrYhw6DIkW1Nvv1mKu3i86riq19qhBose7v1XngRLBQwgfU/HnlIzJegNEEGgeMAkX0ErF77WfV2pxCzF6ZMRv7kn+a6yE2LURLg/M8eq3lYoyQcJFq55JfVPVUIpx/avEsjgCR/MvlHXlhtJqviClB3mRlvwBcz4vpq4ogpKnzAU=';
+ awsWSclient.setAWSToken (token);
  ```
