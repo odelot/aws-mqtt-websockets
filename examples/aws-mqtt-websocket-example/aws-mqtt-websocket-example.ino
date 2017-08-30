@@ -7,7 +7,6 @@
 //AWS
 #include "sha256.h"
 #include "Utils.h"
-#include "AWSClient2.h"
 
 //WEBSockets
 #include <Hash.h>
