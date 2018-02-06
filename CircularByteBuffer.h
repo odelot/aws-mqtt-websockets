@@ -23,6 +23,7 @@ public:
 	
 	void clear ()
 	{
+		memset(data,0,capacity);
 		size = 0;
 		begin = 0;
 		end = 0;
