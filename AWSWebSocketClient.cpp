@@ -445,6 +445,7 @@ void AWSWebSocketClient::stop() {
 		_connected = false;
 		bb.clear ();
 	}
+	clientDisconnect(&_client);
 	disconnect ();
 }
 
