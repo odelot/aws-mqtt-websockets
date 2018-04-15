@@ -2,7 +2,7 @@
 Implementation of a middleware to use AWS MQTT service through websockets. Aiming the esp8266 platform
 
 ## ChangeLog
-* 1.2.0 - using pubsubclient there isn't the "many reconnection issue" (see pubsubclient example to migrate from paho) - get time from pool.ntp.org - tested with arduinoWebSockets v.2.1.0, arduino/esp sdk 2.4.1 and pubsubclient version v2.6.0
+* **1.2.0** - using pubsubclient there isn't the "many reconnection issue" (see pubsubclient example to migrate from paho) - get time from pool.ntp.org - tested with arduinoWebSockets v.2.1.0, arduino/esp sdk 2.4.1 and pubsubclient version v2.6.0
 * 1.1.0 - can use AWS STS temporary credentials - change some dynamic to static memory allocation to avoid memory fragmentation
 * 1.0.1 - works with arduinoWebSockets v.2.0.5 and arduino/esp sdk 2.3.0
 * 1.0.alpha - stable - works with arduinoWebSockets v.2.0.2 and arduino/esp sdk 2.1.0
@@ -67,6 +67,15 @@ const int maxMQTTpackageSize = 128;
 const int maxMQTTMessageHandlers = 1;
  ```
  
+ ## Grant IoT Permission in AWS Console
+
+Go to https://console.aws.amazon.com/
+Then click IAM
+Then click policy. find your policy or create a new policy
+set service to IOT
+set action to iot:*
+set resouce to all resources
+
  ## AWS STS Temporary Credential
  
  To avoid having a long term credential hardcoded in our device, you can create temporary credentials that will last up to 36 hours using the AWS STS service (learn more here http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html).
