@@ -8,6 +8,7 @@
 #include "sha256.h"
 #include "Utils.h"
 
+
 //WEBSockets
 #include <Hash.h>
 #include <WebSocketsClient.h>
@@ -24,6 +25,10 @@
 #include "Client.h"
 #include "AWSWebSocketClient.h"
 #include "CircularByteBuffer.h"
+
+extern "C" {
+  #include "user_interface.h"
+}
 
 //AWS IOT config, change these:
 char wifi_ssid[]       = "your-ssid";
@@ -44,7 +49,7 @@ ESP8266WiFiMulti WiFiMulti;
 AWSWebSocketClient awsWSclient(1000);
 
 IPStack ipstack(awsWSclient);
-MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers> *client = NULL;
+MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers> client(ipstack);
 
 //# of connections
 long connection = 0;
@@ -85,18 +90,11 @@ void messageArrived(MQTT::MessageData& md)
 //connects to websocket layer and mqtt layer
 bool connect () {
 
-    if (client == NULL) {
-      client = new MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers>(ipstack);
-    } else {
-
-      if (client->isConnected ()) {    
-        client->disconnect ();
-      }  
-      delete client;
-      client = new MQTT::Client<IPStack, Countdown, maxMQTTpackageSize, maxMQTTMessageHandlers>(ipstack);
-    }
 
 
+    if (client.isConnected ()) {    
+        client.disconnect ();
+    }  
     //delay is not necessary... it just help us to get a "trustful" heap space value
     delay (1000);
     Serial.print (millis ());
@@ -121,10 +119,10 @@ bool connect () {
 
     Serial.println("MQTT connecting");
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
-    data.MQTTVersion = 3;
+    data.MQTTVersion = 4;
     char* clientID = generateClientID ();
     data.clientID.cstring = clientID;
-    rc = client->connect(data);
+    rc = client.connect(data);
     delete[] clientID;
     if (rc != 0)
     {
@@ -139,7 +137,7 @@ bool connect () {
 //subscribe to a mqtt topic
 void subscribe () {
    //subscript to a topic
-    int rc = client->subscribe(aws_topic, MQTT::QOS0, messageArrived);
+    int rc = client.subscribe(aws_topic, MQTT::QOS0, messageArrived);
     if (rc != 0) {
       Serial.print("rc from MQTT subscribe is ");
       Serial.println(rc);
@@ -159,11 +157,12 @@ void sendmessage () {
     message.dup = false;
     message.payload = (void*)buf;
     message.payloadlen = strlen(buf)+1;
-    int rc = client->publish(aws_topic, message); 
+    int rc = client.publish(aws_topic, message); 
 }
 
 
 void setup() {
+    wifi_set_sleep_type(NONE_SLEEP_T);
     Serial.begin (115200);
     delay (2000);
     Serial.setDebugOutput(1);
@@ -194,7 +193,7 @@ void setup() {
 void loop() {
   //keep the mqtt up and running
   if (awsWSclient.connected ()) {    
-      client->yield();
+      client.yield(50);
   } else {
     //handle reconnection
     if (connect ()){
