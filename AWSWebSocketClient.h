@@ -8,6 +8,7 @@
 #include "CircularByteBuffer.h"
 #include "sha256.h"
 #include "Utils.h"
+#include <time.h>
 
 static const int HASH_HEX_LEN2 = 64;
 
@@ -18,6 +19,8 @@ static const int HASH_HEX_LEN2 = 64;
 #define DEBUG_WEBSOCKET_MQTT(...)
 #define NODEBUG_WEBSOCKET_MQTT
 #endif
+
+
 
 class AWSWebSocketClient : public Client, private WebSocketsClient {
 public:
@@ -63,7 +66,11 @@ public:
   //convert the month info
   String getMonth(String sM);
   //get current time (UTC) from aws service (used to sign)
-  char* getCurrentTime(void);
+  String getCurrentTimeAmazon(void);
+
+  String getCurrentTimeNTP(void);
+
+  String ntpFixNumber (int number);
   
   //static instance of aws websocket client
   static AWSWebSocketClient* instance;
@@ -80,6 +87,9 @@ public:
   //connection timeout 
   unsigned long _connectionTimeout;
 
+  //useAmazonTimestamp
+  bool _useAmazonTimestamp;
+
   char* path;
   /* Name of region, eg. "us-east-1" in "kinesis.us-east-1.amazonaws.com". */
   char* awsRegion;
@@ -92,7 +102,7 @@ public:
   /* The user's AWS Security Token for temporary credentials (just use with AWS STS). */
   char* awsToken;
   
-
+  unsigned long lastTimeUpdate;
   //circular buffer to keep incoming messages from websocket
   CircularByteBuffer bb;
   
