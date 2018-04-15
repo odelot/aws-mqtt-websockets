@@ -2,7 +2,7 @@
 Implementation of a middleware to use AWS MQTT service through websockets. Aiming the esp8266 platform
 
 ## ChangeLog
-
+* 1.2.0 - using pubsubclient there isn't the "many reconnection issue" (see pubsubclient example to migrate from paho) - get time from pool.ntp.org - tested with arduinoWebSockets v.2.1.0, arduino/esp sdk 2.4.1 and pubsubclient version v2.6.0
 * 1.1.0 - can use AWS STS temporary credentials - change some dynamic to static memory allocation to avoid memory fragmentation
 * 1.0.1 - works with arduinoWebSockets v.2.0.5 and arduino/esp sdk 2.3.0
 * 1.0.alpha - stable - works with arduinoWebSockets v.2.0.2 and arduino/esp sdk 2.1.0
@@ -22,22 +22,23 @@ This way we can change the state of your esp8266 devices in realtime, without us
 |---------------------------|-----------------------------------------------------------------|---------------------|
 |aws-sdk-arduino            |https://github.com/odelot/aws-sdk-arduino                        |aws signing functions|
 |arduinoWebSockets          |https://github.com/Links2004/arduinoWebSockets                   |websocket comm impl  |
-|Paho MQTT for Arduino      |https://projects.eclipse.org/projects/technology.paho/downloads  |mqtt comm impl       |
+
+**Works with these MQTT clients** - Use one or another - see examples
+
+| Library                       | Link                                                            | Use                 |
+|-------------------------------|-----------------------------------------------------------------|---------------------|
+|PubSubClient (recommended)     |https://github.com/knolleary/pubsubclient                        |mqtt comm impl       |
+|Paho MQTT for Arduino          |https://projects.eclipse.org/projects/technology.paho/downloads  |mqtt comm impl       |
 
 ## Installation
 
 1. Configure your arduino ide to compile and upload programs to ESP8266 (Arduino core for ESP8266 - details https://github.com/esp8266/Arduino )\*\*
 2. Install all the dependencies as Arduino Libraries
 3. Install aws-mqtt-websockets as Arduino Library as well
-4. Configure the example file with your AWS credencials and endpoints
+4. Configure the example file with your AWS credencials and endpoints (**remember to grant iot permissions for your user**)
 5. Compile, upload and run!
 
 \** The library was tested with 2.3.0 stable version of Arduino core for ESP8266
-
-## Limitation
-
-* need to be stress tested
-* may work in Arduino out of AWS environment (turn off SSL and set Path) 
 
 ## Usage
 
@@ -48,7 +49,7 @@ It is transparent. It is the same as the usage of Paho. There is just some chang
 * aws user key \*\*
 * aws user secret key
 
- \*\* It is a good practice creating a new user (and grant just iot services permission). Avoid use the key/secret key of your main aws console user
+ \*\* It is a good practice creating a new user (and grant just **iot services permission**). Avoid use the key/secret key of your main aws console user
  
  ```
  //AWS IOT config, change these:
