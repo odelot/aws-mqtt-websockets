@@ -69,12 +69,12 @@ const int maxMQTTMessageHandlers = 1;
  
  ## Grant IoT Permission in AWS Console
 
-Go to https://console.aws.amazon.com/
-Then click IAM
-Then click policy. find your policy or create a new policy
-set service to IOT
-set action to iot:*
-set resouce to all resources
+* Go to https://console.aws.amazon.com/
+* Then click IAM
+* Then click policy. find your policy or create a new policy
+* set service to IOT
+* set action to iot:*
+* set resouce to all resources
 
  ## AWS STS Temporary Credential
  
