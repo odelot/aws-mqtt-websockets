@@ -498,17 +498,19 @@ int AWSWebSocketClient::peek() {
 	return bb.peek ();
 }
 
-void AWSWebSocketClient::flush() {
-
+bool AWSWebSocketClient::flush(unsigned int maxWaitMs) {
+    return true;
 }
 
-void AWSWebSocketClient::stop() {
+bool AWSWebSocketClient::stop(unsigned int maxWaitMs) {
 	if (_connected == true) {		
 		_connected = false;		
 	}
     bb.clear ();
 	clientDisconnect(&_client);
 	//disconnect ();
+
+    return true;
 }
 
 uint8_t AWSWebSocketClient::connected() {
