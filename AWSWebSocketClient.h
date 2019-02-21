@@ -30,8 +30,6 @@ public:
   ~AWSWebSocketClient();
 
   
-  bool stop(unsigned int maxWaitMs = 0);
-  bool flush(unsigned int maxWaitMs = 0);
 
   int connect(IPAddress ip, uint16_t port);
   int connect(const char *host, uint16_t port);
@@ -44,6 +42,8 @@ public:
   int read(uint8_t *buf, size_t size);
 
   int peek();
+  void flush();
+  void stop();
   uint8_t connected() ;
   operator bool();
 
