@@ -2,7 +2,7 @@
 Implementation of a middleware to use AWS MQTT service through websockets. Aiming the esp8266 platform
 
 ## ChangeLog
-* **1.3.0** - update lib and pubsubclient example to use the newest versions of arduino/esp (2.7.3), adruinoWebSocket (2.2.0) and pubsubclient (2.8.0) - now you need to use a certificate to connect to AWS - you can use the one in the pubsubclient example that expires in 2037
+* **1.3.0** - update lib and pubsubclient example to use the newest versions of arduino/esp (2.7.3), arduinoWebSocket (2.2.0) and pubsubclient (2.8.0) - now you need to use a certificate to connect to AWS - you can use the one in the pubsubclient example that expires in 2037
 * 1.2.0 - using pubsubclient there isn't the "many reconnection issue" (see pubsubclient example to migrate from paho) - get time from pool.ntp.org - tested with arduinoWebSockets v.2.1.0, arduino/esp sdk 2.4.1 and pubsubclient version v2.6.0
 * 1.1.0 - can use AWS STS temporary credentials - change some dynamic to static memory allocation to avoid memory fragmentation
 * 1.0.1 - works with arduinoWebSockets v.2.0.5 and arduino/esp sdk 2.3.0
@@ -45,7 +45,7 @@ if you fell like thank me, you can buy me a coffe (or a beer) https://www.buymea
 4. Configure the example file with your AWS credencials and endpoints (**remember to grant iot permissions for your user**)
 5. Compile, upload and run!
 
-\** The library was tested with 2.3.0 stable version of Arduino core for ESP8266
+\** The library was tested with 2.7.3 version of Arduino core for ESP8266
 
 ## Usage
 
