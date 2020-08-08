@@ -12,7 +12,6 @@
 
 static const int HASH_HEX_LEN2 = 64;
 
-
 //#define DEBUG_WEBSOCKET_MQTT(...) os_printf( __VA_ARGS__ )
 
 #ifndef DEBUG_WEBSOCKET_MQTT
@@ -20,19 +19,16 @@ static const int HASH_HEX_LEN2 = 64;
 #define NODEBUG_WEBSOCKET_MQTT
 #endif
 
-
-
 class AWSWebSocketClient : public Client, private WebSocketsClient {
 public:
 
   //bufferSize defines the size of the circular byte buffer that provides the interface between messages arrived in websocket layer and byte reads from mqtt layer	
   AWSWebSocketClient (unsigned int bufferSize = 1000, unsigned long connectionTimeout = 50000);
   ~AWSWebSocketClient();
-
   
-
-  int connect(IPAddress ip, uint16_t port);
-  int connect(const char *host, uint16_t port);
+  virtual int connect(IPAddress ip, uint16_t port) override;
+  virtual int connect(const char *host, uint16_t port) override;
+  virtual int connect(const String& host, uint16_t port);
 
   void putMessage (byte* buffer, int length);
   size_t write(uint8_t b);
@@ -42,8 +38,10 @@ public:
   int read(uint8_t *buf, size_t size);
 
   int peek();
-  void flush();
-  void stop();
+  bool flush(unsigned int maxWaitMs);
+  bool stop(unsigned int maxWaitMs);
+  virtual void flush() override { (void)flush(0); }
+  virtual void stop() override { (void)stop(0); }
   uint8_t connected() ;
   operator bool();
 
@@ -56,8 +54,9 @@ public:
   AWSWebSocketClient& setAWSKeyID(const char * awsKeyID);  
   AWSWebSocketClient& setPath(const char * path);
   AWSWebSocketClient& setAWSToken(const char * awsToken);
-  
-
+  AWSWebSocketClient& setFingerprint(const char * fingerprint);
+  AWSWebSocketClient& setCA(const char * ca);
+  AWSWebSocketClient& setUseAmazonTimestamp(bool useAmazonTimestamp);
       
   protected:
   //generate AWS signed path
@@ -101,6 +100,8 @@ public:
   char* awsKeyID;
   /* The user's AWS Security Token for temporary credentials (just use with AWS STS). */
   char* awsToken;
+  /* root certificate */
+  const char* ca;
   
   unsigned long lastTimeUpdate;
   //circular buffer to keep incoming messages from websocket
