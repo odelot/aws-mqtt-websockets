@@ -1,3 +1,8 @@
+/**
+* Example working with library v1.2
+*
+*/
+
 #include <Arduino.h>
 #include <Stream.h>
 #include <ESP8266WiFi.h>
