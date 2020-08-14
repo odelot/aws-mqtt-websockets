@@ -65,12 +65,13 @@ AWSWebSocketClient::AWSWebSocketClient (unsigned int bufferSize, unsigned long c
     awsSecKey = NULL;
     awsKeyID = NULL;
     awsDomain = NULL;
-	awsToken = NULL;
+    awsToken = NULL;
     path = NULL;
-	_connected = false;	
+    _connected = false;	
     bb.init (bufferSize); 
     lastTimeUpdate = 0;
     _useAmazonTimestamp = true;
+    begin("", 0);
 }
 
 //destructor
