@@ -2,7 +2,7 @@
 Implementation of a middleware to use AWS MQTT service through websockets. Aiming the esp8266 platform
 
 ## ChangeLog
-* **1.3.0** - update lib and pubsubclient example to use the newest versions of arduino/esp (2.7.3), arduinoWebSocket (2.2.0) and pubsubclient (2.8.0) - now you need to use a certificate to connect to AWS - you can use the one in the pubsubclient example that expires in 2037
+* **1.3.0** - update lib and pubsubclient example to use the newest versions of arduino/esp (2.7.3), arduinoWebSocket (2.2.0) and pubsubclient (2.8.0) - now you need to use a certificate to connect to AWS - you can use the certificate alternatives in the pubsubclient example that should be valid up to 2036/2037
 * 1.2.0 - using pubsubclient there isn't the "many reconnection issue" (see pubsubclient example to migrate from paho) - get time from pool.ntp.org - tested with arduinoWebSockets v.2.1.0, arduino/esp sdk 2.4.1 and pubsubclient version v2.6.0
 * 1.1.0 - can use AWS STS temporary credentials - change some dynamic to static memory allocation to avoid memory fragmentation
 * 1.0.1 - works with arduinoWebSockets v.2.0.5 and arduino/esp sdk 2.3.0
@@ -21,7 +21,7 @@ This way we can change the state of your esp8266 devices in realtime, without us
 
 ## Donate
 
-if you fell like thank me, you can buy me a coffe (or a beer) https://www.buymeacoffee.com/odelot cheers! 
+if you fell like thank me, you can buy me a coffe (or a beer) https://www.buymeacoffee.com/odelot cheers!
 
 ## Dependencies
 
@@ -57,7 +57,7 @@ It is transparent. It is the same as the usage of Paho. There is just some chang
 * aws user secret key
 
  \*\* It is a good practice creating a new user (and grant just **iot services permission**). Avoid use the key/secret key of your main aws console user
- 
+
  ```
  //AWS IOT config, change these:
 char wifi_ssid[]       = "your-ssid";
@@ -73,7 +73,7 @@ int port = 443;
 const int maxMQTTpackageSize = 128;
 const int maxMQTTMessageHandlers = 1;
  ```
- 
+
  ## Grant IoT Permission in AWS Console
 
 * Go to https://console.aws.amazon.com/
@@ -84,11 +84,11 @@ const int maxMQTTMessageHandlers = 1;
 * set resouce to all resources
 
  ## AWS STS Temporary Credential
- 
+
  To avoid having a long term credential hardcoded in our device, you can create temporary credentials that will last up to 36 hours using the AWS STS service (learn more here http://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html).
- 
+
  Using STS you will get a AWS key, AWS secret and AWS token. To inform the AWS token, use the following method
- 
+
  ```
  //it is just an example. As the credential last up to 36 hours, you will need to get temporary credential every 36 hours
  //you won't use it hard coded
